@@ -1,0 +1,12 @@
+/home/alex/IBT Bridge/backend/target/debug/deps/libhttparse-ed330500d3ff5544.rmeta: /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/lib.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/iter.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/macros.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/simd/mod.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/simd/swar.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/simd/sse42.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/simd/avx2.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/simd/runtime.rs
+
+/home/alex/IBT Bridge/backend/target/debug/deps/httparse-ed330500d3ff5544.d: /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/lib.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/iter.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/macros.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/simd/mod.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/simd/swar.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/simd/sse42.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/simd/avx2.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/simd/runtime.rs
+
+/home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/lib.rs:
+/home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/iter.rs:
+/home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/macros.rs:
+/home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/simd/mod.rs:
+/home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/simd/swar.rs:
+/home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/simd/sse42.rs:
+/home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/simd/avx2.rs:
+/home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/httparse-1.9.5/src/simd/runtime.rs:

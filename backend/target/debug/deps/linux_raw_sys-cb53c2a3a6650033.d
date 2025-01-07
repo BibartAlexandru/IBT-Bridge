@@ -1,0 +1,11 @@
+/home/alex/IBT Bridge/backend/target/debug/deps/liblinux_raw_sys-cb53c2a3a6650033.rmeta: /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/lib.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/elf.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/x86_64/errno.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/x86_64/general.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/x86_64/ioctl.rs
+
+/home/alex/IBT Bridge/backend/target/debug/deps/liblinux_raw_sys-cb53c2a3a6650033.rlib: /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/lib.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/elf.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/x86_64/errno.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/x86_64/general.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/x86_64/ioctl.rs
+
+/home/alex/IBT Bridge/backend/target/debug/deps/linux_raw_sys-cb53c2a3a6650033.d: /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/lib.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/elf.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/x86_64/errno.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/x86_64/general.rs /home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/x86_64/ioctl.rs
+
+/home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/lib.rs:
+/home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/elf.rs:
+/home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/x86_64/errno.rs:
+/home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/x86_64/general.rs:
+/home/alex/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/linux-raw-sys-0.4.14/src/x86_64/ioctl.rs:
