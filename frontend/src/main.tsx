@@ -12,7 +12,7 @@ createRoot(document.getElementById("root")!).render(
           name: "IBT Bridge",
           url: window.location.href,
         },
-        infuraAPIKey: process.env.REACT_APP_INFURA_API_KEY,
+        infuraAPIKey: "aeb80b09a4fe41429b0e51dc3b1d39ef",
       }}
     >
       <App />
