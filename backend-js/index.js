@@ -22,39 +22,6 @@ app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
 
-app.post("/deployContract", async (req, res) => {
-  const { chainId, deployerPrivateKey } = req.body;
-
-  // console.log(chainId + "\n" + deployerPrivateKey);
-
-  try {
-    const web3 = new Web3("http://127.0.0.1:8545/");
-
-    const signer = web3.eth.accounts.privateKeyToAccount(deployerPrivateKey);
-    web3.eth.accounts.wallet.add(signer);
-
-    const contract = new web3.eth.Contract(abi);
-    const deployTx = contract.deploy({
-      data: "0x" + bytecode,
-    });
-    const deployedContract = await deployTx
-      .send({
-        from: signer.address,
-        gas: 30000000,
-        // gas: await deployTx.estimateGas(),
-        // gasPrice: web3.utils.toWei("1", "gwei"),
-      })
-      .once("transactionHash", (txHash) => {
-        console.log(txHash);
-        //0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9
-      });
-    CONTRACT_ADDRESS = deployedContract.options.address;
-    res.status(200).send();
-  } catch (e) {
-    res.status(500).send({ error: e });
-  }
-});
-
 app.get("/balanceOf/:account", async (req, res) => {
   const { account } = req.params;
   if (!CONTRACT_ADDRESS) {
