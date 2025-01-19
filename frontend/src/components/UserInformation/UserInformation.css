@@ -1,0 +1,27 @@
+.info-row {
+  justify-content: space-between;
+  /* flex-wrap: nowrap; */
+}
+
+.user-information {
+  background-color: var(--bs-navbar-color);
+  border-radius: var(--bs-border-radius);
+  display: flex;
+  flex-direction: column;
+}
+
+.user-information .info-row:nth-of-type(2) {
+  flex-wrap: nowrap;
+}
+
+.pub-key-col {
+  width: unset !important;
+}
+
+.user-information h4 {
+  text-align: left;
+}
+
+.user-information .row > div:nth-child(odd) {
+  background-color: rgb(35, 34, 34) !important;
+}

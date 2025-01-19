@@ -1,4 +1,30 @@
-.row {
+/* .row {
   display: flex;
   gap: 1rem;
+} */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  min-height: 100vh;
+}
+
+* {
+  --bs-heading-color: whitesmoke !important;
+  --bs-body-bg: rgb(22, 22, 22) !important;
+  --neon-green: rgb(28, 246, 28);
+  --button-hover-color: var(--neon-green);
+}
+
+button:hover {
+  border-color: var(--button-hover-color);
+}
+
+.button {
+  /* border-radius: var(--bs-border-radius); */
+}
+
+.form-control {
+  color: white !important;
 }

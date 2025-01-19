@@ -1,6 +1,42 @@
 nav {
-  position: fixed !important;
+  /* position: fixed !important; */
   top: 0;
   width: 100%;
   margin: 0;
+}
+
+.navbar {
+  background-color: var(--bs-navbar-color);
+}
+
+#root * {
+  --bs-navbar-brand-hover-color: var(--neon-green) !important;
+  --bs-navbar-color: #1e1d1d !important;
+  --bs-navbar-brand-color: white !important;
+  --bs-nav-link-color: rgb(225, 222, 222) !important;
+  --bs-nav-link-hover-color: white !important;
+  --bs-navbar-active-color: white !important;
+  /* --bs-navbar-hover-color:var(--bs-navbar-brand-color) */
+  /* --bs-navbar-disabled-color:var(--bs-navbar-brand-color) */
+  /* --bs-navbar-active-color */
+  /* --bs-navbar-toggler-border-color */
+
+  --bs-dropdown-link-hover-color: white;
+  --bs-dropdown-link-hover-bg: rgb(45, 45, 45);
+  --bs-link-hover-color-rgb: green;
+  --bs-dropdown-color: white !important;
+  --bs-dropdown-link-color: whitesmoke;
+  --bs-dropdown-bg: var(--bs-navbar-color) !important;
+  --bs-dropdown-box-shadow: 0rem 0.5rem 1rem white !important;
+  --bs-dropdown-border-color: rgba(255, 255, 255, 0.111);
+}
+
+.navbar-collapse {
+  width: fit-content;
+  flex-grow: 0 !important;
+}
+
+.navbar > .container {
+  /* margin: 0; */
+  justify-content: left !important;
 }

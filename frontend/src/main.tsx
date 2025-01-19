@@ -8,8 +8,12 @@ import EthereumPage from "./components/EthereumPage/EthereumPage.tsx";
 
 const routes = createBrowserRouter([
   {
-    path: "/ethereum",
+    path: "/ethereum/:mode",
     element: <EthereumPage />,
+  },
+  {
+    path: "/sui/:mode",
+    element: undefined,
   },
   {
     path: "/",

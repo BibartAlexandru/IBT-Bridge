@@ -46,6 +46,15 @@ h1 {
   line-height: 1.1;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0 !important;
+}
+
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -65,15 +74,21 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+/* .row > * {
+  width: fit-content !important;
+} */
+
+.normal-img {
+  object-fit: contain;
+  height: 3rem;
+}
+
+.max-1-line {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-clamp: 1;
+  overflow: hidden;
 }

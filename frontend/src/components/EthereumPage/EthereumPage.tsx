@@ -4,12 +4,22 @@ import { useSDK } from "@metamask/sdk-react";
 import IBTToken from "../../contracts/IBTToken.json";
 import Web3 from "web3";
 import IBTNavbar from "../IBTNavBar/IBTNavbar";
+import Image from "react-bootstrap/Image";
+import { useParams } from "react-router-dom";
+import Container from "react-bootstrap/Container";
+import Row from "react-bootstrap/Row";
+import Col from "react-bootstrap/Col";
+import UserInformation from "../UserInformation/UserInformation";
+import Form from "react-bootstrap/Form";
+import DeployerInformation from "../DeployerInformation/DeployerInformation";
+
 const EthereumPage = () => {
-  const [account, setAccount] = useState<string>();
+  const [account, setAccount] = useState<string>("");
   const [ethTokens, setEthTokens] = useState<number>(999);
   const [ethContractAddr, setEthContractAddr] = useState(
-    localStorage.getItem("ethContractAddress") || ""
+    sessionStorage.getItem("ethContractAddress") || ""
   );
+  const { mode } = useParams<{ id: string }>();
   const { sdk, connected, connecting, provider, chainId } = useSDK();
 
   async function deployEthTokenContract() {
@@ -35,7 +45,7 @@ const EthereumPage = () => {
         })
         .on("receipt", (receipt) => {
           console.log(receipt);
-          localStorage.setItem("ethContractAddress", receipt.contractAddress);
+          sessionStorage.setItem("ethContractAddress", receipt.contractAddress);
           setEthContractAddr(receipt.contractAddress);
         });
     }
@@ -52,13 +62,13 @@ const EthereumPage = () => {
 
   async function getAndSetEthTokens() {
     try {
-      if (window.ethereum && ethContractAddr && account) {
+      if (window.ethereum && ethContractAddr.length > 0 && account) {
         const web3 = new Web3(window.ethereum);
         const contract = new web3.eth.Contract(IBTToken.abi, ethContractAddr);
         const balance = await contract.methods
           .balanceOf(account)
           .call({ from: account });
-        console.log(`balance:${balance}`);
+        console.log(`GOT BALANCE:${balance}`);
         setEthTokens(Number(balance));
       }
     } catch (e) {
@@ -69,28 +79,61 @@ const EthereumPage = () => {
   useEffect(() => {
     if (account) getAndSetEthTokens();
   }, [account]);
+
+  useEffect(() => {
+    connect();
+  });
+
   return (
-    <div className="ethereum-page">
-      <button onClick={connect}> Connect</button>
-      <button onClick={deployEthTokenContract}>Deploy Bridge Contract</button>
-      {connected && (
-        <div>
-          <h1>Chain ID: {chainId}</h1>
-          <h1>Account: {account}</h1>
-          <h1>(ETH) IBT Tokens: {ethTokens}</h1>
-          <div className="row">
-            <h2>Eth Contract Address:</h2>
-            <input
-              type="text"
-              value={ethContractAddr}
-              onChange={(e) => {
-                setEthContractAddr(e.currentTarget.value);
+    <div className="ethereum-page p-5">
+      <Container>
+        <Row style={{ flexWrap: "nowrap", justifyContent: "space-between" }}>
+          <Col xs="10" style={{ textAlign: "left" }}>
+            <Row style={{ flexWrap: "nowrap", justifyContent: "left" }}>
+              <Col style={{ flexGrow: 0 }}>
+                <img src="/eth-logo.png" className="normal-img" />
+              </Col>
+              <Row style={{ alignItems: "center", width: "fit-content" }}>
+                <h4>ETH IBT Tokens</h4>
+              </Row>
+            </Row>
+          </Col>
+          <Col xs="2" style={{ textAlign: "right" }}>
+            <button
+              className="btn btn-dark"
+              onClick={() => {
+                connect();
               }}
+            >
+              Reconnect
+            </button>
+          </Col>
+        </Row>
+      </Container>
+
+      {connected &&
+        (mode === "deployer" ? (
+          <>
+            <UserInformation
+              tokens={ethTokens}
+              publicKey={account}
+              chainId={chainId}
             />
-          </div>
-        </div>
-      )}
-      ;
+            <DeployerInformation
+              contractAddress={ethContractAddr}
+              setContractAddress={setEthContractAddr}
+            />
+            <button className="btn btn-dark" onClick={deployEthTokenContract}>
+              Deploy Bridge Contract
+            </button>
+          </>
+        ) : (
+          <UserInformation
+            tokens={ethTokens}
+            publicKey={account}
+            chainId={chainId}
+          />
+        ))}
     </div>
   );
 };

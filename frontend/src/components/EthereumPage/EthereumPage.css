@@ -4,4 +4,10 @@
   flex-direction: column;
   gap: 1rem;
   align-items: center;
+  justify-content: start;
+  flex-grow: 1;
+}
+
+.ethereum-page h4 {
+  text-align: left;
 }
