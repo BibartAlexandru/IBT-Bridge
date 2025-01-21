@@ -18,6 +18,7 @@ interface Props {
   setContractAddress: React.Dispatch<React.SetStateAction<string>>;
   chainIcon: string;
   chainName: string;
+  connectButton?: React.ReactNode | undefined;
 }
 
 const BlockchainPage = ({
@@ -32,6 +33,7 @@ const BlockchainPage = ({
   setContractAddress,
   chainIcon,
   chainName,
+  connectButton = undefined,
 }: Props) => {
   return (
     <div className="blockchain-page p-5">
@@ -55,14 +57,18 @@ const BlockchainPage = ({
           </Col>
           <Col xs="1" sm="1" md="4" lg="6"></Col>
           <Col xs="6" md="4" lg="2" style={{ textAlign: "right" }}>
-            <button
-              className="btn btn-dark w-100"
-              onClick={() => {
-                connect();
-              }}
-            >
-              Reconnect
-            </button>
+            {connectButton === undefined ? (
+              <button
+                className="btn btn-dark w-100"
+                onClick={() => {
+                  connect();
+                }}
+              >
+                Reconnect
+              </button>
+            ) : (
+              connectButton
+            )}
           </Col>
         </Row>
       </Container>
