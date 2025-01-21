@@ -3,23 +3,17 @@ import "./EthereumPage.css";
 import { useSDK } from "@metamask/sdk-react";
 import IBTToken from "../../contracts/IBTToken.json";
 import Web3 from "web3";
-import IBTNavbar from "../IBTNavBar/IBTNavbar";
-import Image from "react-bootstrap/Image";
 import { useParams } from "react-router-dom";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
-import UserInformation from "../UserInformation/UserInformation";
-import Form from "react-bootstrap/Form";
-import DeployerInformation from "../DeployerInformation/DeployerInformation";
+import { EthereumPageContext } from "../../contexts/EthereumPageContext";
+import BlockchainPage from "../BlockchainPage/BlockchainPage";
 
 const EthereumPage = () => {
   const [account, setAccount] = useState<string>("");
-  const [ethTokens, setEthTokens] = useState<number>(999);
+  const [ethTokens, setEthTokens] = useState<number | undefined>(undefined);
   const [ethContractAddr, setEthContractAddr] = useState(
     sessionStorage.getItem("ethContractAddress") || ""
   );
-  const { mode } = useParams<{ id: string }>();
+  const { mode } = useParams<{ mode: string }>();
   const { sdk, connected, connecting, provider, chainId } = useSDK();
 
   async function deployEthTokenContract() {
@@ -60,7 +54,7 @@ const EthereumPage = () => {
     }
   }
 
-  async function getAndSetEthTokens() {
+  async function refreshTokens() {
     try {
       if (window.ethereum && ethContractAddr.length > 0 && account) {
         const web3 = new Web3(window.ethereum);
@@ -76,8 +70,57 @@ const EthereumPage = () => {
     }
   }
 
+  async function onMint(
+    callerPubKey: string,
+    contractAddress: string,
+    mintToAddress: string,
+    mintAmount: number
+  ) {
+    console.log({ callerPubKey, contractAddress, mintToAddress, mintAmount });
+    try {
+      if (window.ethereum) {
+        console.log("ON MINT CALLED!");
+        const web3 = new Web3(window.ethereum);
+        const contract = new web3.eth.Contract(IBTToken.abi, contractAddress);
+        await contract.methods
+          .mintToPerson(mintToAddress, mintAmount)
+          .send({ from: callerPubKey })
+          .then((receipt) => {
+            // console.log(receipt);
+            refreshTokens();
+          });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function onBurn(
+    callerPubKey: string,
+    burnAmount: number,
+    burnFromAddress: string,
+    contractAddress: string
+  ) {
+    try {
+      if (window.ethereum) {
+        console.log("ON BURN CALLED!");
+        const web3 = new Web3(window.ethereum);
+        const contract = new web3.eth.Contract(IBTToken.abi, contractAddress);
+        await contract.methods
+          .burnFromPerson(burnFromAddress, burnAmount)
+          .send({ from: callerPubKey })
+          .then((receipt) => {
+            // console.log(receipt);
+            refreshTokens();
+          });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   useEffect(() => {
-    if (account) getAndSetEthTokens();
+    if (account) refreshTokens();
   }, [account]);
 
   useEffect(() => {
@@ -85,56 +128,21 @@ const EthereumPage = () => {
   });
 
   return (
-    <div className="ethereum-page p-5">
-      <Container>
-        <Row style={{ flexWrap: "nowrap", justifyContent: "space-between" }}>
-          <Col xs="10" style={{ textAlign: "left" }}>
-            <Row style={{ flexWrap: "nowrap", justifyContent: "left" }}>
-              <Col style={{ flexGrow: 0 }}>
-                <img src="/eth-logo.png" className="normal-img" />
-              </Col>
-              <Row style={{ alignItems: "center", width: "fit-content" }}>
-                <h4>ETH IBT Tokens</h4>
-              </Row>
-            </Row>
-          </Col>
-          <Col xs="2" style={{ textAlign: "right" }}>
-            <button
-              className="btn btn-dark"
-              onClick={() => {
-                connect();
-              }}
-            >
-              Reconnect
-            </button>
-          </Col>
-        </Row>
-      </Container>
-
-      {connected &&
-        (mode === "deployer" ? (
-          <>
-            <UserInformation
-              tokens={ethTokens}
-              publicKey={account}
-              chainId={chainId}
-            />
-            <DeployerInformation
-              contractAddress={ethContractAddr}
-              setContractAddress={setEthContractAddr}
-            />
-            <button className="btn btn-dark" onClick={deployEthTokenContract}>
-              Deploy Bridge Contract
-            </button>
-          </>
-        ) : (
-          <UserInformation
-            tokens={ethTokens}
-            publicKey={account}
-            chainId={chainId}
-          />
-        ))}
-    </div>
+    <EthereumPageContext.Provider value={{ refreshTokens, onBurn, onMint }}>
+      <BlockchainPage
+        chainIcon="/eth-logo.png"
+        chainId={chainId}
+        chainName="ETH"
+        connect={connect}
+        connected={connected}
+        contractAddress={ethContractAddr}
+        setContractAddress={setEthContractAddr}
+        deployTokenContract={deployEthTokenContract}
+        mode={mode}
+        pubKey={account}
+        tokens={ethTokens}
+      />
+    </EthereumPageContext.Provider>
   );
 };
 

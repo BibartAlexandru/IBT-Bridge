@@ -92,3 +92,19 @@ button:focus-visible {
   line-clamp: 1;
   overflow: hidden;
 }
+
+.form-control::placeholder {
+  color: rgba(245, 245, 245, 0.464) !important;
+}
+
+.ibt-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: start;
+}
+
+.ibt-row {
+  display: flex;
+  gap: 1rem;
+}

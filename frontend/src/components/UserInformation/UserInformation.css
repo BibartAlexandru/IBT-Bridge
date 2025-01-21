@@ -10,9 +10,12 @@
   flex-direction: column;
 }
 
-.user-information .info-row:nth-of-type(2) {
+/* BOOTSTRAP >=S
+@media (min-width: var(--bs-breakpoint-sm)) {
+} */
+/* .user-information .info-row:nth-of-type(2) {
   flex-wrap: nowrap;
-}
+} */
 
 .pub-key-col {
   width: unset !important;

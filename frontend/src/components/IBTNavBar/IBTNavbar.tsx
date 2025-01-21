@@ -6,7 +6,7 @@ const IBTNavbar = () => {
   return (
     <Navbar expand="lg">
       <Container>
-        <Navbar.Brand href="/">IBT Bridge</Navbar.Brand>
+        <Navbar.Brand href="/">IBT 🌉</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Toggle aria-controls="sui-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">

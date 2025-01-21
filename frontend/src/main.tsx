@@ -5,6 +5,7 @@ import App from "./App.tsx";
 import { MetaMaskProvider } from "@metamask/sdk-react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import EthereumPage from "./components/EthereumPage/EthereumPage.tsx";
+import SuiPage from "./components/SuiPage/SuiPage.tsx";
 
 const routes = createBrowserRouter([
   {
@@ -13,7 +14,7 @@ const routes = createBrowserRouter([
   },
   {
     path: "/sui/:mode",
-    element: undefined,
+    element: <SuiPage />,
   },
   {
     path: "/",
