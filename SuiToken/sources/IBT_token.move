@@ -1,12 +1,7 @@
 module ibt_token_package::ibt_token{
-    use sui::token::{Self};
     use sui::coin::{Self,Coin,TreasuryCap};
 
     public struct IBT_TOKEN has drop {}
-
-    public struct DeployerObj has key{
-        id: sui::object::UID
-    }
 
     // e ca si constructorul unui contract in eth, doar deployerul ii da call on deploy
     fun init(witness: IBT_TOKEN, ctx: &mut TxContext){
@@ -22,13 +17,6 @@ module ibt_token_package::ibt_token{
             ctx
         );
 
-        //obiectul asta il atesta ca esti deployerul contractului, folosit
-        //la verif de mint si burn
-        let deployer_obj = DeployerObj{
-            id: sui::object::new(ctx)
-        };
-        transfer::transfer(deployer_obj, ctx.sender());
-
         // aici deployerul primeste factory-ul de tokene    
         transfer::public_transfer(treasury, ctx.sender());
         transfer::public_share_object(metadata);
@@ -39,12 +27,8 @@ module ibt_token_package::ibt_token{
         cap: &mut TreasuryCap<IBT_TOKEN>,
         recipient: address,
         ctx: &mut TxContext,
-        _deployer_obj: &DeployerObj,
     ){
         coin::mint_and_transfer(cap, amount, recipient, ctx);
-        // let token = token::mint(cap, amount, ctx);
-        // let req = token::transfer(token, recipient, ctx);
-        // token::confirm_with_treasury_cap(cap, req, ctx);
     }
 
     public fun burn(
@@ -53,7 +37,6 @@ module ibt_token_package::ibt_token{
         recipient_coins: &mut vector<Coin<IBT_TOKEN>>,
         ctx: &mut TxContext,
         cap: &mut TreasuryCap<IBT_TOKEN>,
-        _deployer_obj: &DeployerObj,
     ): bool{
         if(balance(recipient_coins) < amount)
             return false;
@@ -64,14 +47,9 @@ module ibt_token_package::ibt_token{
         };
 
         if(coin::balance(& merged_coin).value() > amount){
-            let split_amt_coin = coin::split(&mut merged_coin, amount, ctx);
-            coin::burn(cap,split_amt_coin);
-
-            let (token,transform_req) = token::from_coin(merged_coin, ctx);
-            token::confirm_with_treasury_cap(cap, transform_req, ctx);
-            
-            let req = token::transfer(token, recipient, ctx);
-            token::confirm_with_treasury_cap(cap, req, ctx);
+            let diff = coin::balance(& merged_coin).value() - amount;
+            coin::burn(cap,merged_coin);
+            coin::mint_and_transfer(cap, diff, recipient,ctx);
         }
         else{
             coin::burn(cap, merged_coin);
