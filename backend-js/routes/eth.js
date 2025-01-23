@@ -1,6 +1,5 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-module.exports = router;
 
 router.get("/", (req, res) => {
   res.status(200).send("Hello from eth middleware");
@@ -50,3 +49,4 @@ router.get("/balanceOf/:account", async (req, res) => {
 });
 
 router.post("mintToPerson/:account/:amount", async (req, res) => {});
+export default router;

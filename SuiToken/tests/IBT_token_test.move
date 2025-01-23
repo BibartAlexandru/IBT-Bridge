@@ -4,7 +4,6 @@ module test_package::IBT_token_test{
     use ibt_token_package::ibt_token::{IBT_TOKEN};
     use sui::test_scenario;
     use sui::coin::{TreasuryCap,Coin};
-    use sui::token::Token;
 
     const OBJECT_NOT_SENT: u64 = 0 ;
     const WRONG_COIN_AMOUNT: u64 = 2 ;

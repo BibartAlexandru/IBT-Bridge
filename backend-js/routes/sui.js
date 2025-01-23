@@ -1,20 +1,44 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-module.exports = router;
-require("dotenv").config();
-const fs = require("fs");
-const path = require("path");
-const { execSync } = require("child_process");
-const { getFullnodeUrl, SuiClient } = require("@mysten/sui.js/client");
-const { Ed25519Keypair } = require("@mysten/sui.js/keypairs/ed25519");
-const { Transaction } = require("@mysten/sui.js/transactions");
-const { bech32 } = require("bech32");
+import dotenv from "dotenv";
+import { readFileSync } from "fs";
+import { join } from "path";
+import { execSync } from "child_process";
+import { getFullnodeUrl, SuiClient } from "@mysten/sui/client";
+import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
+import { Transaction } from "@mysten/sui/transactions";
+import { TransactionBlock } from "@mysten/sui.js/transactions";
+import { bech32 } from "bech32";
+import { getFaucetHost, requestSuiFromFaucetV0 } from "@mysten/sui/faucet";
+const __dirname = import.meta.dirname;
 
+dotenv.config();
 const SUI_DEPLOYER_PRIVATE_KEY = process.env.SUI_DEPLOYER_PRIVATE_KEY;
 const SUI_CHAIN_URL = process.env.SUI_CHAIN_URL;
+let SUI_PACKAGE_OBJ_ID =
+  "0xfecdf7cd7fd1c02524eb224d3b411eec06e4544f6cf26048b51e9f73af22768a"; // set in the deploy contract endpoint
+function getDeployerKeypair() {
+  const { words } = bech32.decode(SUI_DEPLOYER_PRIVATE_KEY);
+  const numArray = bech32.fromWords(words);
+  const secretKeyBytes = Buffer.from(numArray);
+  //first byte is always 0 at least in my case
+  const keypair = Ed25519Keypair.fromSecretKey(secretKeyBytes.slice(1));
+  return keypair;
+}
+
+async function mintSui(recipientSuiAddr) {
+  return requestSuiFromFaucetV0({
+    host: getFaucetHost("devnet"),
+    recipient: recipientSuiAddr,
+  });
+}
 
 router.get("/", (req, res) => {
   res.status(200).send({ modules, dependencies });
+});
+
+router.get("/mintSui", async (req, res) => {
+  res.status(200).send(await mintSui(getDeployerKeypair().toSuiAddress()));
 });
 
 router.get("/deployContract", async (req, res) => {
@@ -22,23 +46,18 @@ router.get("/deployContract", async (req, res) => {
     url: SUI_CHAIN_URL,
   });
 
-  const { words } = bech32.decode(SUI_DEPLOYER_PRIVATE_KEY);
-  const numArray = bech32.fromWords(words);
-  const secretKeyBytes = Buffer.from(numArray);
-  //first byte is version and is 0 at least in this case
-  const keypair = Ed25519Keypair.fromSecretKey(secretKeyBytes.slice(1));
-  res.status(200).send({
-    resulted: keypair.getPublicKey().toRawBytes(),
-    initial: Buffer.from(
-      "AAdjq7WWm9yx1Xia1KCel1mMc2FiW7doxQI67dvuZ1mT",
-      "base64"
-    ).slice(1),
-  });
-  return;
+  const keypair = getDeployerKeypair();
 
-  const { modules, dependencies } = fs.readFileSync(
-    path.join(__dirname, "../../../SuiToken/contract-build.js"),
-    "utf-8"
+  mintSui(keypair.toSuiAddress());
+
+  const { modules, dependencies } = JSON.parse(
+    execSync(
+      `sui move build --dump-bytecode-as-base64 --path "${join(
+        __dirname,
+        "../../SuiToken"
+      )}" --install-dir "${join(__dirname, "../../sui_install_dir")}"`,
+      { encoding: "utf-8" }
+    )
   );
   const tx = new Transaction();
   const [upgradeCap] = tx.publish({
@@ -52,5 +71,119 @@ router.get("/deployContract", async (req, res) => {
     transaction: tx,
   });
 
-  console.log({ result });
+  if (result.digest === undefined) {
+    res.status(500).send({ result });
+    return;
+  }
+
+  const txBlock = await client.getTransactionBlock({
+    digest: await tx.getDigest(),
+    options: {
+      showEffects: true,
+    },
+  });
+
+  SUI_PACKAGE_OBJ_ID = txBlock.effects.created.find(
+    (o) => o.owner === "Immutable"
+  ).reference.objectId;
+  console.log(`SUI_PKG_ID: ${SUI_PACKAGE_OBJ_ID}`);
+  res.status(200).send({ txBlock });
 });
+
+router.get("/mint/:recipientAddr/:amount", async (req, res) => {
+  const { recipientAddr, amount } = req.params;
+  const keypair = getDeployerKeypair();
+  const client = new SuiClient({
+    url: SUI_CHAIN_URL,
+  });
+  try {
+    let cap = await client.getOwnedObjects({
+      owner: keypair.toSuiAddress(),
+      filter: {
+        StructType: `0x2::coin::TreasuryCap<${SUI_PACKAGE_OBJ_ID}::ibt_token::IBT_TOKEN>`,
+      },
+      limit: 1,
+    });
+    if (cap === undefined) {
+      res.status(500).send({ cap });
+      return;
+    }
+    cap = cap.data[0];
+    console.log(cap);
+    const tx = new Transaction();
+    tx.moveCall({
+      target: `${SUI_PACKAGE_OBJ_ID}::ibt_token::mint`,
+      arguments: [
+        tx.pure("u64", Number(amount)),
+        tx.object(cap.data.objectId),
+        tx.pure("address", recipientAddr),
+      ],
+    });
+    tx.setGasBudget(9000000);
+    const result = await client.signAndExecuteTransaction({
+      transaction: tx,
+      signer: keypair,
+    });
+    res.status(200).send({ txResult: result });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send({ error: e });
+  }
+});
+
+router.get("/balance/:suiAddr", async (req, res) => {
+  const keypair = getDeployerKeypair();
+  const { suiAddr } = req.params;
+  const client = new SuiClient({
+    url: SUI_CHAIN_URL,
+  });
+  try {
+    const tx = new TransactionBlock();
+    let coins = await client.getOwnedObjects({
+      owner: suiAddr,
+      // options: {
+      //   showOwner: true,
+      //   showType: true,
+      //   showContent: true,
+      //   showStorageRebate: true,
+      //   showDisplay: true,
+      // },
+      filter: {
+        StructType: `0x2::coin::Coin<${SUI_PACKAGE_OBJ_ID}::ibt_token::IBT_TOKEN>`,
+      },
+    });
+
+    if (coins.length === 0) {
+      res.status(200).send({ balance: 0 });
+      return;
+    }
+    const coinIds = coins.data.map((c) => c.data.objectId);
+
+    tx.moveCall({
+      target: `${SUI_PACKAGE_OBJ_ID}::ibt_token::balance`,
+      arguments: [
+        tx.makeMoveVec({
+          objects: coinIds.map((cId) => tx.object(cId)),
+        }),
+      ],
+    });
+
+    tx.setGasBudget(9000000);
+
+    const result = await client.devInspectTransactionBlock({
+      transactionBlock: tx,
+      sender: keypair.toSuiAddress(),
+    });
+    const balanceByteArr = result.results[1].returnValues[0][0]; // returns u64 as byte arr
+    // 8 values in array => 8bits per value
+    const buffer = new Uint8Array(balanceByteArr).buffer;
+    // for 1 => 1 0 0 0 .. so small endian
+    const balance = Number(new DataView(buffer).getBigUint64(0, true));
+    res.status(200).send({ balanceByteArr, balance });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send({ error: e });
+  }
+});
+
+export default router;
