@@ -132,7 +132,15 @@ const EthereumPage = () => {
   }
 
   return (
-    <EthereumPageContext.Provider value={{ refreshTokens, onBurn, onMint }}>
+    <EthereumPageContext.Provider
+      value={{
+        refreshTokens,
+        onBurn,
+        onMint,
+        accountPropertyName: "Public Key",
+        contractAddressPropertyName: "Contract Address",
+      }}
+    >
       <BlockchainPage
         chainIcon="/eth-logo.png"
         chainId={mode === "deployer" ? deployerChainId : chainId}

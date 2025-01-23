@@ -35,8 +35,13 @@ const DeployerInformation = ({
   //I don't know under which context this component will be...
   const ethContext = useContext(EthereumPageContext) as IBlockchainPageContext;
   const suiContext = useContext(SuiPageContext) as IBlockchainPageContext;
-  const { refreshTokens, onBurn, onMint } =
-    ethContext === undefined ? suiContext : ethContext;
+  const {
+    refreshTokens,
+    onBurn,
+    onMint,
+    accountPropertyName,
+    contractAddressPropertyName,
+  } = ethContext === undefined ? suiContext : ethContext;
 
   return (
     <Container
@@ -46,7 +51,7 @@ const DeployerInformation = ({
       {/* CONTRACT ADDR */}
       <Row>
         <Col xs="6" s="6">
-          <h4>Eth Contract Address:</h4>
+          <h4>{contractAddressPropertyName}</h4>
         </Col>
         <Col xs="6" style={{ justifyContent: "left", display: "flex" }}>
           <h4 className="max-1-line">
@@ -79,17 +84,19 @@ const DeployerInformation = ({
         }}
       />
       {/* BURN */}
-      <MintBurnComponent
-        amount={burnAmount}
-        address={burnFromAddress}
-        setAddress={setBurnFromAddress}
-        setAmount={setBurnAmount}
-        operationName="Burn 🔥"
-        onOperation={async () => {
-          onBurn(burnAmount.valueOf(), burnFromAddress as string);
-        }}
-        buttonText="Burn"
-      />
+      {!accountPropertyName.includes("Sui") && (
+        <MintBurnComponent
+          amount={burnAmount}
+          address={burnFromAddress}
+          setAddress={setBurnFromAddress}
+          setAmount={setBurnAmount}
+          operationName="Burn 🔥"
+          onOperation={async () => {
+            onBurn(burnAmount.valueOf(), burnFromAddress as string);
+          }}
+          buttonText="Burn"
+        />
+      )}
     </Container>
   );
 };

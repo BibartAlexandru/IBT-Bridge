@@ -1,9 +1,14 @@
-import React from "react";
+import React, { useContext } from "react";
 import "./UserInformation.css";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/esm/Form";
+import {
+  EthereumPageContext,
+  IBlockchainPageContext,
+} from "../../contexts/EthereumPageContext";
+import { SuiPageContext } from "../../contexts/SuiPageContext";
 
 interface Props {
   chainId: string | undefined;
@@ -22,6 +27,10 @@ const UserInformation = ({
   setContractAddress = undefined,
   displayContractAddress = false,
 }: Props) => {
+  const ethContext = useContext(EthereumPageContext) as IBlockchainPageContext;
+  const suiContext = useContext(SuiPageContext) as IBlockchainPageContext;
+  const { accountPropertyName, contractAddressPropertyName } =
+    ethContext === undefined ? suiContext : ethContext;
   return (
     <Container className="user-information px-3 my-3">
       <Row className="info-row">
@@ -34,7 +43,7 @@ const UserInformation = ({
       </Row>
       <Row className="info-row">
         <Col xs="12" sm="6" className="p-3">
-          <h4>Account</h4>
+          <h4>{accountPropertyName}</h4>
         </Col>
         <Col xs="12" sm="6" className="p-3">
           <div className="max-1-line ">
@@ -56,7 +65,7 @@ const UserInformation = ({
         {displayContractAddress && setContractAddress !== undefined && (
           <>
             <Col xs="12" sm="6" className="p-3">
-              <h4>Contract Address:</h4>
+              <h4>{contractAddressPropertyName}</h4>
             </Col>
             <Col
               xs="12"

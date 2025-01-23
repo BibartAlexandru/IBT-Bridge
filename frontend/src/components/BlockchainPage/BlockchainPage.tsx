@@ -56,20 +56,22 @@ const BlockchainPage = ({
             <h4>{chainName} IBT Tokens</h4>
           </Col>
           <Col xs="1" sm="1" md="4" lg="6"></Col>
-          <Col xs="6" md="4" lg="2" style={{ textAlign: "right" }}>
-            {connectButton === undefined ? (
-              <button
-                className="btn btn-dark w-100"
-                onClick={() => {
-                  connect();
-                }}
-              >
-                Reconnect
-              </button>
-            ) : (
-              connectButton
-            )}
-          </Col>
+          {mode !== "deployer" && (
+            <Col xs="6" md="4" lg="2" style={{ textAlign: "right" }}>
+              {connectButton === undefined ? (
+                <button
+                  className="btn btn-dark w-100"
+                  onClick={() => {
+                    connect();
+                  }}
+                >
+                  Reconnect
+                </button>
+              ) : (
+                connectButton
+              )}
+            </Col>
+          )}
         </Row>
       </Container>
 

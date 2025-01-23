@@ -41,6 +41,37 @@ router.get("/mintSui", async (req, res) => {
   res.status(200).send(await mintSui(getDeployerKeypair().toSuiAddress()));
 });
 
+router.get("/deployerAddress", async (req, res) => {
+  if (!SUI_DEPLOYER_PRIVATE_KEY)
+    return res
+      .status(500)
+      .send({ message: "Missing sui_deployer_privatekey from .env" });
+  const keypair = getDeployerKeypair();
+  return res.status(200).send({ deployerAddress: keypair.toSuiAddress() });
+});
+
+router.get("/deployerPublicKey", async (req, res) => {
+  if (!SUI_DEPLOYER_PRIVATE_KEY)
+    return res
+      .status(500)
+      .send({ message: "Missing sui_deployer_privatekey from .env" });
+  const keypair = getDeployerKeypair();
+  return res.status(200).send({
+    deployerPublicKey: keypair.getPublicKey().toBase64(),
+  });
+});
+
+router.get("/deployerChainId", async (req, res) => {
+  if (!SUI_CHAIN_URL)
+    return res.status(500).send({ message: "Chain URL missing from .env" });
+  const client = new SuiClient({
+    url: SUI_CHAIN_URL,
+  });
+  return res
+    .status(200)
+    .send({ deployerChainId: await client.getChainIdentifier() });
+});
+
 router.get("/deployContract", async (req, res) => {
   const client = new SuiClient({
     url: SUI_CHAIN_URL,
@@ -66,31 +97,25 @@ router.get("/deployContract", async (req, res) => {
   });
 
   tx.transferObjects([upgradeCap], keypair.toSuiAddress());
+
   const result = await client.signAndExecuteTransaction({
     signer: keypair,
     transaction: tx,
-  });
-
-  if (result.digest === undefined) {
-    res.status(500).send({ result });
-    return;
-  }
-
-  const txBlock = await client.getTransactionBlock({
-    digest: await tx.getDigest(),
     options: {
       showEffects: true,
     },
   });
 
-  SUI_PACKAGE_ID = txBlock.effects.created.find((o) => o.owner === "Immutable")
+  SUI_PACKAGE_ID = result.effects.created.find((o) => o.owner === "Immutable")
     .reference.objectId;
   console.log(`SUI_PKG_ID: ${SUI_PACKAGE_ID}`);
-  res.status(200).send({ txBlock });
+  res.status(200).send({ result });
 });
 
 router.get("/mint/:recipientAddr/:amount", async (req, res) => {
-  const { recipientAddr, amount } = req.params;
+  let { recipientAddr, amount } = req.params;
+  if (recipientAddr.startsWith("0x"))
+    recipientAddr = recipientAddr.substring(2);
   const keypair = getDeployerKeypair();
   const client = new SuiClient({
     url: SUI_CHAIN_URL,
@@ -108,7 +133,7 @@ router.get("/mint/:recipientAddr/:amount", async (req, res) => {
       return;
     }
     cap = cap.data[0];
-    console.log(cap);
+    // console.log(cap);
     const tx = new Transaction();
     tx.moveCall({
       target: `${SUI_PACKAGE_ID}::ibt_token::mint`,
@@ -130,12 +155,73 @@ router.get("/mint/:recipientAddr/:amount", async (req, res) => {
   }
 });
 
+//trebe semnata si de recipient
+router.get("/burn/:recipientAddr/:amount", async (req, res) => {
+  let { recipientAddr, amount } = req.params;
+  if (recipientAddr.startsWith("0x"))
+    recipientAddr = recipientAddr.substring(2);
+  const keypair = getDeployerKeypair();
+  const client = new SuiClient({
+    url: SUI_CHAIN_URL,
+  });
+  try {
+    let cap = await client.getOwnedObjects({
+      owner: keypair.toSuiAddress(),
+      filter: {
+        StructType: `0x2::coin::TreasuryCap<${SUI_PACKAGE_ID}::ibt_token::IBT_TOKEN>`,
+      },
+      limit: 1,
+    });
+    if (cap === undefined) {
+      res.status(500).send({ cap });
+      return;
+    }
+    cap = cap.data[0];
+    // console.log(cap);
+    let coins = await client.getOwnedObjects({
+      owner: recipientAddr,
+      filter: {
+        StructType: `0x2::coin::Coin<${SUI_PACKAGE_ID}::ibt_token::IBT_TOKEN>`,
+      },
+    });
+
+    if (coins.data.length === 0) {
+      return res.status(200).send({ message: "0 coins left, can't burn" });
+    }
+
+    const coinIds = coins.data.map((c) => c.data.objectId);
+
+    const tx = new Transaction();
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::ibt_token::burn`,
+      arguments: [
+        tx.pure("u64", Number(amount)),
+        tx.pure("address", recipientAddr),
+        tx.makeMoveVec({
+          elements: coinIds.map((cId) => tx.object(cId)),
+        }),
+        tx.object(cap.data.objectId),
+      ],
+    });
+    tx.setGasBudget(9000000);
+    const result = await client.signAndExecuteTransaction({
+      transaction: tx,
+      signer: keypair,
+    });
+    res.status(200).send({ txResult: result });
+  } catch (e) {
+    console.error(e);
+    res.status(500).send({ error: e });
+  }
+});
+
 router.get("/balance/:suiAddr", async (req, res) => {
   if (SUI_PACKAGE_ID === undefined) {
     return res.status(401).send({ error: "Contract not deployed." });
   }
   const keypair = getDeployerKeypair();
-  const { suiAddr } = req.params;
+  let { suiAddr } = req.params;
+  if (suiAddr.startsWith("0x")) suiAddr = suiAddr.substring(2);
   const client = new SuiClient({
     url: SUI_CHAIN_URL,
   });
@@ -143,19 +229,12 @@ router.get("/balance/:suiAddr", async (req, res) => {
     const tx = new TransactionBlock();
     let coins = await client.getOwnedObjects({
       owner: suiAddr,
-      // options: {
-      //   showOwner: true,
-      //   showType: true,
-      //   showContent: true,
-      //   showStorageRebate: true,
-      //   showDisplay: true,
-      // },
       filter: {
         StructType: `0x2::coin::Coin<${SUI_PACKAGE_ID}::ibt_token::IBT_TOKEN>`,
       },
     });
 
-    if (coins.length === 0) {
+    if (coins.data.length === 0) {
       res.status(200).send({ balance: 0 });
       return;
     }
@@ -186,6 +265,12 @@ router.get("/balance/:suiAddr", async (req, res) => {
     console.error(e);
     res.status(500).send({ error: e });
   }
+});
+
+router.get("/packageId", (req, res) => {
+  if (!SUI_CHAIN_URL)
+    return res.status(500).send({ message: "Chain URL missing from .env" });
+  return res.status(200).send({ packageId: SUI_PACKAGE_ID });
 });
 
 export default router;

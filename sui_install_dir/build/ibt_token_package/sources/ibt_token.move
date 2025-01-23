@@ -35,8 +35,8 @@ module ibt_token_package::ibt_token{
         amount: u64,
         recipient: address,
         recipient_coins: &mut vector<Coin<IBT_TOKEN>>,
-        ctx: &mut TxContext,
         cap: &mut TreasuryCap<IBT_TOKEN>,
+        ctx: &mut TxContext,
     ): bool{
         if(balance(recipient_coins) < amount)
             return false;
