@@ -23,7 +23,6 @@ const DeployerInformation = ({
   contractAddress,
   setContractAddress,
   deployTokenContract,
-  pubKey,
 }: Props) => {
   const [mintAmount, setMintAmount] = useState<Number>(0);
   const [mintToAddress, setMintToAddress] = useState<String | undefined>(
@@ -50,14 +49,9 @@ const DeployerInformation = ({
           <h4>Eth Contract Address:</h4>
         </Col>
         <Col xs="6" style={{ justifyContent: "left", display: "flex" }}>
-          <Form.Control
-            type="text"
-            placeholder=""
-            value={contractAddress}
-            onChange={(e) => {
-              setContractAddress(e.currentTarget.value);
-            }}
-          />
+          <h4 className="max-1-line">
+            {contractAddress ? contractAddress : "Contract not deployed"}
+          </h4>
         </Col>
         <Col xs="6" sm="6"></Col>
         <Col xs="6" sm="6" className="ibt-col p-3">
@@ -68,7 +62,7 @@ const DeployerInformation = ({
               deployTokenContract();
             }}
           >
-            Deploy Bridge Contract
+            Deploy Token Contract
           </button>
         </Col>
       </Row>
@@ -81,12 +75,7 @@ const DeployerInformation = ({
         operationName="Mint 🧊"
         buttonText="Mint"
         onOperation={async () => {
-          onMint(
-            pubKey,
-            contractAddress,
-            mintToAddress as string,
-            mintAmount.valueOf()
-          );
+          onMint(mintToAddress as string, mintAmount.valueOf());
         }}
       />
       {/* BURN */}
@@ -97,12 +86,7 @@ const DeployerInformation = ({
         setAmount={setBurnAmount}
         operationName="Burn 🔥"
         onOperation={async () => {
-          onBurn(
-            pubKey,
-            burnAmount.valueOf(),
-            burnFromAddress as string,
-            contractAddress
-          );
+          onBurn(burnAmount.valueOf(), burnFromAddress as string);
         }}
         buttonText="Burn"
       />

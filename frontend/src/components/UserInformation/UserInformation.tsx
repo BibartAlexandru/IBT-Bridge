@@ -64,14 +64,9 @@ const UserInformation = ({
               style={{ justifyContent: "left", display: "flex" }}
               className="p-3"
             >
-              <Form.Control
-                type="text"
-                placeholder=""
-                value={contractAddress}
-                onChange={(e) => {
-                  setContractAddress(e.currentTarget.value);
-                }}
-              />
+              <h4 className="max-1-line">
+                {contractAddress ? contractAddress : "Contract not deployed"}
+              </h4>
             </Col>
           </>
         )}

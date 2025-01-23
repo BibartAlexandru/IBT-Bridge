@@ -34,21 +34,11 @@ const SuiPage = () => {
     //TODO:
   }
 
-  async function onMint(
-    callerPubKey: string,
-    packageAddress: string,
-    mintToAddress: string,
-    mintAmount: number
-  ) {
+  async function onMint(mintToAddress: string, mintAmount: number) {
     //TODO:
   }
 
-  async function onBurn(
-    callerPubKey: string,
-    burnAmount: number,
-    burnFromAddress: string,
-    packageAddress: string
-  ) {
+  async function onBurn(burnAmount: number, burnFromAddress: string) {
     //TODO:
   }
 

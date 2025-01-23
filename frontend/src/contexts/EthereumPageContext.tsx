@@ -5,16 +5,6 @@ export const EthereumPageContext = createContext<
 
 export interface IBlockchainPageContext {
   refreshTokens: () => Promise<void>;
-  onBurn(
-    callerPubKey: string,
-    burnAmount: number,
-    burnFromAddress: string,
-    contractAddress: string
-  ): Promise<void>;
-  onMint(
-    callerPubKey: string,
-    contractAddress: string,
-    mintToAddress: string,
-    mintAmount: number
-  ): Promise<void>;
+  onBurn(burnAmount: number, burnFromAddress: string): Promise<void>;
+  onMint(mintToAddress: string, mintAmount: number): Promise<void>;
 }
