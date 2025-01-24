@@ -1,0 +1,16 @@
+.transfer-component input:read-only {
+  opacity: 0.5;
+}
+
+.missing-contract {
+  background-color: white;
+  border-radius: 0.375rem;
+}
+
+.missing-contract h5 {
+  color: black;
+}
+
+.missing-contract h5 span {
+  color: red;
+}

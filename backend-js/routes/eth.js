@@ -76,7 +76,7 @@ router.get('/deployerChainId', async (req,res) => {
 router.get('/contractAddress', (req,res) => {
   if(ETH_CONTRACT_ADDRESS)
     return res.status(200).send({contractAddress: ETH_CONTRACT_ADDRESS});
-  return res.status(401).send({contractAddress: undefined});
+  return res.status(500).send({contractAddress: undefined});
 })
 
 router.get('/burn/:pubKey/:amount', async (req,res) => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import "./EthereumPage.css";
 import { useSDK } from "@metamask/sdk-react";
 import IBTToken from "../../contracts/IBTToken.json";
@@ -20,7 +20,7 @@ const EthereumPage = () => {
   async function connect() {
     try {
       const accounts = await sdk?.connect();
-      setAccount(accounts?.[0]);
+      if (accounts) setAccount(accounts?.[0]);
     } catch (err) {
       console.error(`Connection to metamask SDK failed. ${err}`);
     }
@@ -32,7 +32,7 @@ const EthereumPage = () => {
         method: "GET",
       });
       const balance = (await res.json()).balance;
-      setEthTokens(Number(balance));
+      if (res.status === 200) setEthTokens(Number(balance));
     } else {
       try {
         if (window.ethereum && ethContractAddr.length > 0 && account) {
@@ -42,7 +42,8 @@ const EthereumPage = () => {
             .balanceOf(account)
             .call({ from: account });
           console.log(`GOT BALANCE:${balance}`);
-          setEthTokens(Number(balance));
+          const numBalance = Number(balance);
+          setEthTokens(numBalance);
         }
       } catch (e) {
         console.error(e);
@@ -84,16 +85,20 @@ const EthereumPage = () => {
     const res = await fetch(`${backend_url}/eth/deployerPubKey`, {
       method: "GET",
     });
-    const deployerPubKey = (await res.json()).deployerPubKey;
-    setAccount(deployerPubKey);
+    if (res.status === 200) {
+      const deployerPubKey = (await res.json()).deployerPubKey;
+      setAccount(deployerPubKey);
+    }
   }
 
   async function deployerFetchAndSetChainId() {
     const res = await fetch(`${backend_url}/eth/deployerChainId`, {
       method: "GET",
     });
-    const chainId = (await res.json()).chainId;
-    setDeployerChainId(chainId);
+    if (res.status === 200) {
+      const chainId = (await res.json()).chainId;
+      setDeployerChainId(chainId);
+    }
   }
 
   async function fetchAndSetContractAddress() {
@@ -103,8 +108,10 @@ const EthereumPage = () => {
     const res = await fetch(`${backend_url}/eth/contractAddress`, {
       method: "GET",
     });
-    const contractAddress = (await res.json()).contractAddress;
-    setEthContractAddr(contractAddress);
+    if (res.status === 200) {
+      const contractAddress = (await res.json()).contractAddress;
+      setEthContractAddr(contractAddress);
+    }
   }
 
   useEffect(() => {
@@ -120,13 +127,13 @@ const EthereumPage = () => {
     } else {
       connect();
     }
-  });
+  }, []);
 
   async function deployEthTokenContract() {
     const res = await fetch(`${backend_url}/eth/deployContract`, {
       method: "GET",
     });
-    fetchAndSetContractAddress();
+    if (res.status === 200) fetchAndSetContractAddress();
     // const resJson = await res.json();
     // console.log(resJson);
   }
@@ -146,7 +153,7 @@ const EthereumPage = () => {
         chainId={mode === "deployer" ? deployerChainId : chainId}
         chainName="ETH"
         connect={connect}
-        connected={connected}
+        connected={account.length !== 0}
         contractAddress={ethContractAddr}
         setContractAddress={setEthContractAddr}
         deployTokenContract={deployEthTokenContract}

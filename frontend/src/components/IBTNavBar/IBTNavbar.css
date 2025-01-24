@@ -23,7 +23,7 @@ nav {
 
   --bs-dropdown-link-hover-color: white;
   --bs-dropdown-link-hover-bg: rgb(45, 45, 45);
-  --bs-link-hover-color-rgb: green;
+  --bs-link-hover-color-rgb: rgb(0, 111, 128);
   --bs-dropdown-color: white !important;
   --bs-dropdown-link-color: whitesmoke;
   --bs-dropdown-bg: var(--bs-navbar-color) !important;

@@ -13,7 +13,7 @@
 * {
   --bs-heading-color: whitesmoke !important;
   --bs-body-bg: rgb(22, 22, 22) !important;
-  --neon-green: rgb(28, 246, 28);
+  --neon-green: rgb(28, 232, 246);
   --button-hover-color: var(--neon-green);
 }
 

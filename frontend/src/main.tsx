@@ -17,6 +17,7 @@ import {
 } from "@mysten/dapp-kit";
 import { getFullnodeUrl } from "@mysten/sui/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import TransferComponent from "./components/TransferComponent/TransferComponent.tsx";
 
 const { networkConfig } = createNetworkConfig({
   localnet: { url: getFullnodeUrl("localnet") },
@@ -35,7 +36,7 @@ const routes = createBrowserRouter([
   },
   {
     path: "/",
-    element: undefined,
+    element: <TransferComponent />,
   },
 ]);
 
