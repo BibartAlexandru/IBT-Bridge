@@ -35,7 +35,7 @@ module ibt_token_package::ibt_token{
     public fun pay_to_address(
         recipient: address,
         coins: vector<Coin<IBT_TOKEN>>,
-        ctx: &mut TxContext,
+        _ctx: &mut TxContext,
     ){
         pay::join_vec_and_transfer(coins, recipient)
     }
@@ -91,6 +91,32 @@ module ibt_token_package::ibt_token{
         };
         true
     }
+
+    //  public fun burn(
+    //     amount: u64,
+    //     recipient: address,
+    //     recipient_coins: &mut vector<Coin<IBT_TOKEN>>,
+    //     cap: &mut TreasuryCap<IBT_TOKEN>,
+    //     ctx: &mut TxContext,
+    // ): bool{
+    //     if(balance(recipient_coins) < amount)
+    //         return false;
+    //     let mut merged_coin = recipient_coins.pop_back();
+    //     while(coin::balance(& merged_coin).value() < amount){
+    //         let last_coin = recipient_coins.pop_back();
+    //         coin::join(&mut merged_coin, last_coin);
+    //     };
+
+    //     if(coin::balance(& merged_coin).value() > amount){
+    //         let diff = coin::balance(& merged_coin).value() - amount;
+    //         coin::burn(cap,merged_coin);
+    //         coin::mint_and_transfer(cap, diff, recipient,ctx);
+    //     }
+    //     else{
+    //         coin::burn(cap, merged_coin);
+    //     };
+    //     true
+    // }
 
     //oricine-si poate vedea balanta 
     public fun balance(

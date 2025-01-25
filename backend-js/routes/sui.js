@@ -37,8 +37,9 @@ router.get("/", (req, res) => {
   res.status(200).send({ modules, dependencies });
 });
 
-router.get("/mintSui", async (req, res) => {
-  res.status(200).send(await mintSui(getDeployerKeypair().toSuiAddress()));
+router.get("/mintSui/:address", async (req, res) => {
+  const { address } = req.params;
+  res.status(200).send(await mintSui(address));
 });
 
 router.get("/deployerAddress", async (req, res) => {

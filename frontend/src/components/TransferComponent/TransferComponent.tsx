@@ -17,6 +17,7 @@ import {
   useWallets,
   useSignTransaction,
   useSignPersonalMessage,
+  useSignAndExecuteTransaction,
 } from "@mysten/dapp-kit";
 
 import { backend_url } from "../../App";
@@ -25,6 +26,7 @@ import { SuiClient } from "@mysten/sui/client";
 import { MultiSigPublicKey } from "@mysten/sui/multisig";
 import { Ed25519PublicKey } from "@mysten/sui/keypairs/ed25519";
 import { fromB64, fromBase64 } from "@mysten/sui/utils";
+import { Wallet } from "web3";
 
 const TransferComponent = () => {
   const [ethTokens, setEthTokens] = useState(0);
@@ -50,6 +52,8 @@ const TransferComponent = () => {
 
   //SUI WALLET
   const { mutate: suiConnect } = useConnectWallet();
+  const { mutate: userSignAndExecuteTransaction } =
+    useSignAndExecuteTransaction();
   const suiWallets = useWallets();
   const currentSuiWallet = useCurrentWallet();
   const suiAccount = useCurrentAccount();
@@ -65,30 +69,6 @@ const TransferComponent = () => {
 
   async function burnSuiFromUser(amount: number) {
     if (!currentSuiWallet.isConnected) return;
-    console.log("connected!");
-    const resp = await fetch(`${backend_url}/sui/deployerPublicKey`, {
-      method: "GET",
-    });
-    const deployerPublicKey = new Uint8Array(await resp.arrayBuffer());
-
-    // console.log(suiAccount?.publicKey);
-    const userPubKey = new Ed25519PublicKey(suiAccount?.publicKey.slice(1));
-    const depPubKey = new Ed25519PublicKey(deployerPublicKey);
-    // console.log(depPubKey.toRawBytes());
-    // console.log(fromBase64("ADVAPVSBGs1IdEOttSUTY1MgPpdvB53rwlI7Cw7/OAsz"));
-    const multiSigPubKey = MultiSigPublicKey.fromPublicKeys({
-      threshold: 1,
-      publicKeys: [
-        {
-          publicKey: userPubKey,
-          weight: 1,
-        },
-        {
-          publicKey: depPubKey,
-          weight: 1,
-        },
-      ],
-    });
 
     const suiClient = new SuiClient({
       url: "https://fullnode.devnet.sui.io",
@@ -101,33 +81,23 @@ const TransferComponent = () => {
     });
     userCoins = userCoins.data;
 
-    let cap = await suiClient.getOwnedObjects({
-      owner: suiDeployerAddress,
-      filter: {
-        StructType: `0x2::coin::TreasuryCap<${suiPackageId}::ibt_token::IBT_TOKEN>`,
-      },
-      limit: 1,
-    });
-    cap = cap.data[0];
-
     const tx = new Transaction();
     tx.moveCall({
-      target: `${suiPackageId}::ibt_token::burn`,
+      package: suiPackageId,
+      module: "ibt_token",
+      function: "join_into_coin_of_amount",
       arguments: [
         tx.pure("u64", amount),
-        tx.pure("address", suiAccount.address),
         tx.makeMoveVec({
           elements: userCoins.map((coin) => tx.object(coin.data.objectId)),
         }),
-        tx.object(cap.data.objectId),
       ],
     });
     tx.setGasBudget(9000000);
-    tx.setSender(multiSigPubKey.toSuiAddress());
-    userSignTransaction(
+
+    userSignAndExecuteTransaction(
       {
         transaction: tx,
-        account: suiAccount,
         chain: "sui:devnet",
       },
       {
