@@ -155,63 +155,39 @@ router.get("/mint/:recipientAddr/:amount", async (req, res) => {
   }
 });
 
-//trebe semnata si de recipient
-router.get("/burn/:recipientAddr/:amount", async (req, res) => {
-  let { recipientAddr, amount } = req.params;
-  if (recipientAddr.startsWith("0x"))
-    recipientAddr = recipientAddr.substring(2);
+router.post("/deployerSignBurn", async (req, res) => {
   const keypair = getDeployerKeypair();
   const client = new SuiClient({
     url: SUI_CHAIN_URL,
   });
+  const userSignedTransaction = new Uint8Array(req.body);
+
+  // console.log(userSignedTransaction);
+  //TODO: check transaction is burn from user
   try {
-    let cap = await client.getOwnedObjects({
+    const tx = Transaction.from(userSignedTransaction);
+    let cap = await suiClient.getOwnedObjects({
       owner: keypair.toSuiAddress(),
       filter: {
         StructType: `0x2::coin::TreasuryCap<${SUI_PACKAGE_ID}::ibt_token::IBT_TOKEN>`,
       },
       limit: 1,
     });
-    if (cap === undefined) {
-      res.status(500).send({ cap });
-      return;
-    }
     cap = cap.data[0];
-    // console.log(cap);
-    let coins = await client.getOwnedObjects({
-      owner: recipientAddr,
-      filter: {
-        StructType: `0x2::coin::Coin<${SUI_PACKAGE_ID}::ibt_token::IBT_TOKEN>`,
-      },
-    });
 
-    if (coins.data.length === 0) {
-      return res.status(200).send({ message: "0 coins left, can't burn" });
-    }
-
-    const coinIds = coins.data.map((c) => c.data.objectId);
-
-    const tx = new Transaction();
-    tx.moveCall({
-      target: `${SUI_PACKAGE_ID}::ibt_token::burn`,
-      arguments: [
-        tx.pure("u64", Number(amount)),
-        tx.pure("address", recipientAddr),
-        tx.makeMoveVec({
-          elements: coinIds.map((cId) => tx.object(cId)),
-        }),
-        tx.object(cap.data.objectId),
-      ],
-    });
-    tx.setGasBudget(9000000);
-    const result = await client.signAndExecuteTransaction({
+    await client.signAndExecuteTransaction({
       transaction: tx,
       signer: keypair,
     });
-    res.status(200).send({ txResult: result });
+    // const txBytes = await tx.build({ client: client });
+    // res.setHeader("Content-Type", "application/octet-stream");
+    // return res.status(200).send(Buffer.from(txBytes));
+    return res.status(200).send({
+      message: "OK",
+    });
   } catch (e) {
-    console.error(e);
-    res.status(500).send({ error: e });
+    console.log(e);
+    return res.status(500).send(userSignedTransaction);
   }
 });
 

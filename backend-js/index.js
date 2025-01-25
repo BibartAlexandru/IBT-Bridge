@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import bodyParser from "body-parser";
 const app = express();
 app.use(
   cors({
@@ -15,6 +16,7 @@ const { abi, bytecode } = JSON.parse(
 import dotenv from "dotenv";
 dotenv.config();
 app.use(express.json());
+app.use(bodyParser.raw({ type: "application/octet-stream" }));
 import ethRoutes from "./routes/eth.js";
 import suiRoutes from "./routes/sui.js";
 app.use("/eth", ethRoutes);

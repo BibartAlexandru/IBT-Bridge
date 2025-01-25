@@ -28,3 +28,7 @@ button:hover {
 .form-control {
   color: white !important;
 }
+
+p {
+  margin: 0 !important;
+}

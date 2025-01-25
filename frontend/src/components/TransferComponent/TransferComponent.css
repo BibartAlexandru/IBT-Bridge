@@ -14,3 +14,16 @@
 .missing-contract h5 span {
   color: red;
 }
+
+.transfer-image {
+  cursor: pointer;
+  transition-property: transform;
+  transition-duration: 500ms;
+  transition-timing-function: cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+
+.transfer-image:hover {
+  transform: scale(120%);
+  transition-property: transform;
+  transition-duration: 100ms;
+}
