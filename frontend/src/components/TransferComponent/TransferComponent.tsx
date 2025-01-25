@@ -16,11 +16,15 @@ import {
   useCurrentWallet,
   useWallets,
   useSignTransaction,
+  useSignPersonalMessage,
 } from "@mysten/dapp-kit";
+
 import { backend_url } from "../../App";
 import { Transaction } from "@mysten/sui/transactions";
 import { SuiClient } from "@mysten/sui/client";
-import { MultiSigPublicKey, Ed25519PublicKey } from "@mysten/sui/multisig";
+import { MultiSigPublicKey } from "@mysten/sui/multisig";
+import { Ed25519PublicKey } from "@mysten/sui/keypairs/ed25519";
+import { fromB64, fromBase64 } from "@mysten/sui/utils";
 
 const TransferComponent = () => {
   const [ethTokens, setEthTokens] = useState(0);
@@ -45,10 +49,10 @@ const TransferComponent = () => {
   };
 
   //SUI WALLET
-  const suiAccount = useCurrentAccount();
-  const suiConnect = useConnectWallet().mutate;
+  const { mutate: suiConnect } = useConnectWallet();
   const suiWallets = useWallets();
   const currentSuiWallet = useCurrentWallet();
+  const suiAccount = useCurrentAccount();
   const {
     mutate: userSignTransaction,
     isPending: userTxIsPending,
@@ -57,23 +61,35 @@ const TransferComponent = () => {
     variables: userTxVars,
   } = useSignTransaction();
 
+  // const { mutate: userSignMessage } = useSignPersonalMessage();
+
   async function burnSuiFromUser(amount: number) {
-    if (!suiAccount) {
-      suiConnect({
-        wallet: suiWallets[0],
-      });
-    }
+    if (!currentSuiWallet.isConnected) return;
     console.log("connected!");
+    const resp = await fetch(`${backend_url}/sui/deployerPublicKey`, {
+      method: "GET",
+    });
+    const deployerPublicKey = new Uint8Array(await resp.arrayBuffer());
+
+    // console.log(suiAccount?.publicKey);
+    const userPubKey = new Ed25519PublicKey(suiAccount?.publicKey.slice(1));
+    const depPubKey = new Ed25519PublicKey(deployerPublicKey);
+    // console.log(depPubKey.toRawBytes());
+    // console.log(fromBase64("ADVAPVSBGs1IdEOttSUTY1MgPpdvB53rwlI7Cw7/OAsz"));
     const multiSigPubKey = MultiSigPublicKey.fromPublicKeys({
-      threshold: 2,
+      threshold: 1,
       publicKeys: [
-        { publicKey: suiAccount?.publicKey, weight: 1 },
         {
-          publicKey: suiDeployerAddress,
+          publicKey: userPubKey,
+          weight: 1,
+        },
+        {
+          publicKey: depPubKey,
           weight: 1,
         },
       ],
     });
+
     const suiClient = new SuiClient({
       url: "https://fullnode.devnet.sui.io",
     });
@@ -108,12 +124,22 @@ const TransferComponent = () => {
     });
     tx.setGasBudget(9000000);
     tx.setSender(multiSigPubKey.toSuiAddress());
+    userSignTransaction(
+      {
+        transaction: tx,
+        account: suiAccount,
+        chain: "sui:devnet",
+      },
+      {
+        onSuccess(data, variables, context) {
+          console.log("user sign done," + data);
+        },
+        onError(e) {
+          console.error(e);
+        },
+      }
+    );
 
-    userSignTransaction({
-      transaction: tx,
-      account: suiAccount,
-      chain: "sui:devnet",
-    });
     // const resp = await fetch(`${backend_url}/sui/deployerSignBurn`, {
     //   method: "POST",
     //   headers: {
@@ -122,14 +148,6 @@ const TransferComponent = () => {
     //   body: await tx.build({ client: suiClient }),
     // });
   }
-
-  useEffect(() => {
-    console.log("transaction sign pending");
-  }, [userTxIsPending]);
-
-  useEffect(() => {
-    console.log("transaction sign err");
-  }, [userTxIsError]);
 
   async function sendUserSignedBurnTransaction(tx) {
     const suiClient = new SuiClient({
@@ -146,12 +164,6 @@ const TransferComponent = () => {
     console.log(resp);
   }
 
-  useEffect(() => {
-    console.log("transaction sign success");
-    // sendUserSignedBurnTransaction();
-    console.log(userTxVars);
-  }, [userTxIsSuccess]);
-
   async function fetchAndSetTokens() {
     if (ethAccount) {
       const res = await fetch(`${backend_url}/eth/balanceOf/${ethAccount}`, {
@@ -162,9 +174,9 @@ const TransferComponent = () => {
         setEthTokens(Number(balance));
       }
     }
-    if (suiAccount) {
+    if (currentSuiWallet.isConnected) {
       const resp = await fetch(
-        `${backend_url}/sui/balance/${suiAccount.address}`,
+        `${backend_url}/sui/balance/${currentSuiWallet.currentWallet.accounts[0].address}`,
         {
           method: "GET",
         }
@@ -188,7 +200,7 @@ const TransferComponent = () => {
   }
 
   async function fetchAndSetSuiPackageId() {
-    if (!suiAccount) return;
+    if (!currentSuiWallet.isConnected) return;
     const resp = await fetch(`${backend_url}/sui/packageId`, {
       method: "GET",
     });
@@ -207,17 +219,31 @@ const TransferComponent = () => {
   }
 
   useEffect(() => {
-    fetchAndSetIsContracts();
-    fetchAndSetTokens();
-    if (suiAccount) fetchAndSetSuiPackageId();
-  }, [ethAccount, suiAccount]);
+    if (ethAccount && ethAccount.length !== 0) {
+      fetchAndSetIsContracts();
+      fetchAndSetTokens();
+    }
+  }, [ethAccount]);
+
+  useEffect(() => {
+    if (currentSuiWallet.isConnected) {
+      fetchAndSetIsContracts();
+      fetchAndSetTokens();
+      if (currentSuiWallet.isConnected) fetchAndSetSuiPackageId();
+    }
+    console.log(currentSuiWallet.currentWallet?.accounts);
+  }, [currentSuiWallet.isConnected]);
 
   useEffect(() => {
     if (!ethAccount) connect();
-    if (!suiAccount) suiConnect({ wallet: suiWallets[0] });
-  }, [connect]);
 
-  useEffect(() => {
+    if (!currentSuiWallet.isConnected)
+      suiConnect(
+        {
+          wallet: suiWallets[0],
+        },
+        {}
+      );
     fetchAndSetSuiDeployerAddress();
   }, []);
 

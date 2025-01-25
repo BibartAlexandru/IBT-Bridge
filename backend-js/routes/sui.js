@@ -56,9 +56,8 @@ router.get("/deployerPublicKey", async (req, res) => {
       .status(500)
       .send({ message: "Missing sui_deployer_privatekey from .env" });
   const keypair = getDeployerKeypair();
-  return res.status(200).send({
-    deployerPublicKey: keypair.getPublicKey().toBase64(),
-  });
+  res.setHeader("Content-Type", "application/octet-stream");
+  return res.status(200).send(new Buffer(keypair.getPublicKey().toRawBytes()));
 });
 
 router.get("/deployerChainId", async (req, res) => {

@@ -44,7 +44,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <SuiClientProvider networks={networkConfig} defaultNetwork="localnet">
-        <WalletProvider>
+        <WalletProvider enableUnsafeBurner={true} autoConnect={true}>
           <MetaMaskProvider
             sdkOptions={{
               dappMetadata: {
