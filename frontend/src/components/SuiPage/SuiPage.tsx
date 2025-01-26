@@ -32,8 +32,10 @@ const SuiPage = () => {
           method: "GET",
         }
       );
-      const { balance } = await resp.json();
-      setTokens(Number(balance));
+      if (resp.status === 200) {
+        const { balance } = await resp.json();
+        setTokens(Number(balance));
+      }
     } else {
       if (!account) return;
       const resp = await fetch(
@@ -111,6 +113,7 @@ const SuiPage = () => {
 
   useEffect(() => {
     fetchAndsetPackageId();
+    refreshTokens();
     if (mode === "deployer") {
       fetchAndSetDeployerAddress();
       fetchAndSetDeployerChainId();

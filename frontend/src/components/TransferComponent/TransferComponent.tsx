@@ -273,7 +273,7 @@ const TransferComponent = () => {
     pollingTransfersFn.current = setInterval(() => {
       pollAndProcessTransfers();
       console.log("POLLING");
-    }, 10000);
+    }, 5000);
   };
 
   useEffect(() => {
