@@ -19,8 +19,10 @@ app.use(express.json());
 app.use(bodyParser.raw({ type: "application/octet-stream" }));
 import ethRoutes from "./routes/eth.js";
 import suiRoutes from "./routes/sui.js";
+import dbRoutes from "./routes/db.js";
 app.use("/eth", ethRoutes);
 app.use("/sui", suiRoutes);
+app.use("/db", dbRoutes);
 
 // ENV VARS
 const INFURA_API_KEY = process.env.INFURA_API_KEY;

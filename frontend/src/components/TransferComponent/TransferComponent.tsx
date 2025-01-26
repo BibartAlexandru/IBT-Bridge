@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./TransferComponent.css";
 import Container from "react-bootstrap/esm/Container";
 import Col from "react-bootstrap/esm/Col";
 import Row from "react-bootstrap/esm/Row";
 import Form from "react-bootstrap/esm/Form";
-import UserInformation from "../UserInformation/UserInformation";
 import { useSDK } from "@metamask/sdk-react";
 import { Button } from "react-bootstrap";
 
@@ -15,60 +14,75 @@ import {
   useConnectWallet,
   useCurrentWallet,
   useWallets,
-  useSignTransaction,
-  useSignPersonalMessage,
+  // useSignTransaction,
+  // useSignPersonalMessage,
   useSignAndExecuteTransaction,
 } from "@mysten/dapp-kit";
 
 import { backend_url } from "../../App";
 import { Transaction } from "@mysten/sui/transactions";
 import { SuiClient } from "@mysten/sui/client";
-import { MultiSigPublicKey } from "@mysten/sui/multisig";
-import { Ed25519PublicKey } from "@mysten/sui/keypairs/ed25519";
-import { fromB64, fromBase64 } from "@mysten/sui/utils";
-import { Wallet } from "web3";
+// import { MultiSigPublicKey } from "@mysten/sui/multisig";
+// import { Ed25519PublicKey } from "@mysten/sui/keypairs/ed25519";
+// import { fromB64, fromBase64 } from "@mysten/sui/utils";
+// import { Wallet } from "web3";
+
+interface Transfer {
+  id: number;
+  fromChain: string;
+  toChain: string;
+  fromAcc: string;
+  toAcc: string;
+  amount: number;
+  initialFromAmount: number;
+  initialToAmount: number;
+  time: string;
+  status: string;
+}
 
 const TransferComponent = () => {
   const [ethTokens, setEthTokens] = useState(0);
   const [suiTokens, setSuiTokens] = useState(0);
   const [fromEth, setFromEth] = useState(1);
   const [fromSui, setFromSui] = useState(0);
-  const [suiDeployerAddress, setSuiDeployerAddress] = useState("");
+  // const [suiDeployerAddress, setSuiDeployerAddress] = useState("");
   const [isEthContract, setIsEthContract] = useState(false);
   const [suiPackageId, setSuiPackageId] = useState("");
-  const [userSignedBurnTransaction, setUserSignedBurnTransaction] =
-    useState(undefined);
+  // const [userSignedBurnTransaction, setUserSignedBurnTransaction] =
+  // useState(undefined);
+  const pollingTransfersFn = useRef(null);
   //METAMASK
   const [ethAccount, setEthAccount] = useState<string>();
-  const { sdk, connected, connecting, provider, chainId } = useSDK();
-  const connect = async () => {
+  const { sdk } = useSDK();
+
+  const connect = useCallback(async () => {
     try {
       const ethAccounts = await sdk?.connect();
       setEthAccount(ethAccounts?.[0]);
     } catch (err) {
       console.warn("failed to connect..", err);
     }
-  };
+  }, [sdk]);
 
   //SUI WALLET
   const { mutate: suiConnect } = useConnectWallet();
   const { mutate: userSignAndExecuteTransaction } =
     useSignAndExecuteTransaction();
   const suiWallets = useWallets();
-  const currentSuiWallet = useCurrentWallet();
+  // const currentSuiWallet = useCurrentWallet();
   const suiAccount = useCurrentAccount();
-  const {
-    mutate: userSignTransaction,
-    isPending: userTxIsPending,
-    isError: userTxIsError,
-    isSuccess: userTxIsSuccess,
-    variables: userTxVars,
-  } = useSignTransaction();
+  // const {
+  //   mutate: userSignTransaction,
+  //   isPending: userTxIsPending,
+  //   isError: userTxIsError,
+  //   isSuccess: userTxIsSuccess,
+  //   variables: userTxVars,
+  // } = useSignTransaction();
 
   // const { mutate: userSignMessage } = useSignPersonalMessage();
 
   async function burnSuiFromUser(amount: number) {
-    if (!currentSuiWallet.isConnected) return;
+    if (!suiAccount) return;
 
     const suiClient = new SuiClient({
       url: "https://fullnode.devnet.sui.io",
@@ -101,7 +115,7 @@ const TransferComponent = () => {
         chain: "sui:devnet",
       },
       {
-        onSuccess(data, variables, context) {
+        onSuccess(data) {
           console.log("user sign done," + data);
         },
         onError(e) {
@@ -113,50 +127,64 @@ const TransferComponent = () => {
     // const resp = await fetch(`${backend_url}/sui/deployerSignBurn`, {
     //   method: "POST",
     //   headers: {
-    //     "Content-Type": "application/octet-stream",
+    // Content-Type": "application/octet-stream",
     //   },
     //   body: await tx.build({ client: suiClient }),
     // });
   }
 
-  async function sendUserSignedBurnTransaction(tx) {
-    const suiClient = new SuiClient({
-      url: "https://fullnode.devnet.sui.io",
-    });
-    console.log("sending user transaction to backend!");
-    const resp = await fetch(`${backend_url}/sui/deployerSignBurn`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/octet-stream",
-      },
-      body: await tx.build({ client: suiClient }),
-    });
-    console.log(resp);
-  }
+  // async function sendUserSignedBurnTransaction(tx) {
+  //   const suiClient = new SuiClient({
+  //     url: "https://fullnode.devnet.sui.io",
+  //   });
+  //   console.log("sending user transaction to backend!");
+  //   const resp = await fetch(`${backend_url}/sui/deployerSignBurn`, {
+  //     method: "POST",
+  //     headers: {
+  //     "Content-Type": "application/octet-stream",
+  //     },
+  //     body: await tx.build({ client: suiClient }),
+  //   });
+  //   console.log(resp);
+  // }
 
-  async function fetchAndSetTokens() {
-    if (ethAccount) {
-      const res = await fetch(`${backend_url}/eth/balanceOf/${ethAccount}`, {
+  const fetchSuiTokens = useCallback(async (): Promise<number | undefined> => {
+    const resp = await fetch(
+      `${backend_url}/sui/balance/${suiAccount?.address}`,
+      {
         method: "GET",
-      });
-      if (res.status === 200) {
-        const balance = (await res.json()).balance;
-        setEthTokens(Number(balance));
       }
+    );
+    if (resp.status === 200) {
+      const { balance } = await resp.json();
+      return Number(balance);
     }
-    if (currentSuiWallet.isConnected) {
-      const resp = await fetch(
-        `${backend_url}/sui/balance/${currentSuiWallet.currentWallet.accounts[0].address}`,
-        {
-          method: "GET",
-        }
-      );
-      if (resp.status === 200) {
-        const { balance } = await resp.json();
-        setSuiTokens(Number(balance));
-      }
+    return undefined;
+  }, [suiAccount]);
+
+  const fetchEthTokens = useCallback(async (): Promise<number | undefined> => {
+    const res = await fetch(`${backend_url}/eth/balanceOf/${ethAccount}`, {
+      method: "GET",
+    });
+    if (res.status === 200) {
+      const balance = (await res.json()).balance;
+      return Number(balance);
     }
-  }
+    return undefined;
+  }, [ethAccount]);
+
+  const fetchAndSetTokens = useCallback(async () => {
+    if (ethAccount) {
+      const res = await fetchEthTokens();
+      console.log("GOT:" + res);
+      if (res) setEthTokens(res);
+    }
+    if (suiAccount) {
+      const res = await fetchSuiTokens();
+      console.log("GOT:" + res);
+      if (res) setSuiTokens(res);
+    }
+  }, [ethAccount, suiAccount, fetchEthTokens, fetchSuiTokens]);
 
   async function fetchAndSetIsContracts() {
     let resp = await fetch(`${backend_url}/eth/contractAddress`, {
@@ -169,53 +197,113 @@ const TransferComponent = () => {
     // if (resp.status === 200) setIsSuiPackage(true);
   }
 
-  async function fetchAndSetSuiPackageId() {
-    if (!currentSuiWallet.isConnected) return;
+  const fetchAndSetSuiPackageId = useCallback(async () => {
+    if (!suiAccount) return;
     const resp = await fetch(`${backend_url}/sui/packageId`, {
       method: "GET",
     });
     if (resp.status !== 200) return;
     const { packageId } = await resp.json();
     setSuiPackageId(packageId);
-  }
+  }, [suiAccount]);
 
-  async function fetchAndSetSuiDeployerAddress() {
-    const resp = await fetch(`${backend_url}/sui/deployerAddress`, {
-      method: "GET",
-    });
-    if (resp.status !== 200) return;
-    const { deployerAddress } = await resp.json();
-    setSuiDeployerAddress(deployerAddress);
-  }
+  // async function fetchAndSetSuiDeployerAddress() {
+  //   const resp = await fetch(`${backend_url}/sui/deployerAddress`, {
+  //     method: "GET",
+  //   });
+  //   if (resp.status !== 200) return;
+  //   const { deployerAddress } = await resp.json();
+  //   setSuiDeployerAddress(deployerAddress);
+  // }
 
   useEffect(() => {
     if (ethAccount && ethAccount.length !== 0) {
       fetchAndSetIsContracts();
       fetchAndSetTokens();
     }
-  }, [ethAccount]);
+  }, [ethAccount, fetchAndSetTokens]);
 
   useEffect(() => {
-    if (currentSuiWallet.isConnected) {
+    if (suiAccount) {
       fetchAndSetIsContracts();
       fetchAndSetTokens();
-      if (currentSuiWallet.isConnected) fetchAndSetSuiPackageId();
+      if (suiAccount) fetchAndSetSuiPackageId();
     }
-    console.log(currentSuiWallet.currentWallet?.accounts);
-  }, [currentSuiWallet.isConnected]);
+  }, [suiAccount, fetchAndSetTokens, fetchAndSetSuiPackageId]);
 
   useEffect(() => {
     if (!ethAccount) connect();
 
-    if (!currentSuiWallet.isConnected)
+    if (!suiAccount)
       suiConnect(
         {
           wallet: suiWallets[0],
         },
         {}
       );
-    fetchAndSetSuiDeployerAddress();
-  }, []);
+    // fetchAndSetSuiDeployerAddress();
+  }, [connect, suiAccount, ethAccount, suiConnect, suiWallets]);
+
+  function dateToSQL(date: Date): string {
+    const pad = (num: number) => String(num).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+      date.getDate()
+    )} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
+      date.getSeconds()
+    )}`;
+  }
+
+  const startPollingTransferOperations = useCallback(async () => {
+    const pollAndProcessTransfers = async () => {
+      const resp = await fetch(`${backend_url}/db/processTransfers`, {
+        method: "GET",
+      });
+      if (resp.status === 200) {
+        fetchAndSetTokens();
+        console.log(resp);
+      }
+      setTimeout(pollAndProcessTransfers, 10000);
+    };
+    if (!pollingTransfersFn.current) {
+      pollingTransfersFn.current = setTimeout(pollAndProcessTransfers, 0);
+    }
+  }, [fetchAndSetTokens]);
+
+  useEffect(() => {
+    startPollingTransferOperations();
+  }, [startPollingTransferOperations]);
+
+  useEffect(() => {
+    connect();
+  }, [connect]);
+
+  async function createTransferObject() {
+    if (!suiAccount) {
+      console.error("sui account not connected");
+      return;
+    }
+    const fromChain = fromEth !== 0 ? "eth" : "sui";
+    const ts: Transfer = {
+      amount: fromChain === "eth" ? fromEth : fromSui,
+      fromAcc: fromChain === "eth" ? ethAccount : suiAccount.address,
+      toAcc: fromChain === "eth" ? suiAccount.address : ethAccount,
+      fromChain: fromChain,
+      toChain: fromChain === "eth" ? "sui" : "eth",
+      initialFromAmount: fromChain === "eth" ? ethTokens : suiTokens,
+      initialToAmount: fromChain === "eth" ? suiTokens : ethTokens,
+      status: "NEW",
+      time: dateToSQL(new Date(Date.now())),
+    };
+
+    const resp = await fetch(`${backend_url}/db/transfers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ transfer: ts }),
+    });
+    console.log(resp);
+  }
 
   return (
     <Container className="mt-5 transfer-component">
@@ -259,13 +347,14 @@ const TransferComponent = () => {
               style={{ cursor: "pointer" }}
               value={fromEth}
               readOnly={fromEth === 0}
+              max={ethTokens}
               type="number"
               onChange={(e) => {
                 setFromEth(Number(e.currentTarget.value));
                 setFromSui(0);
               }}
               onClick={() => {
-                setFromEth(1);
+                if (fromEth === 0) setFromEth(1);
                 setFromSui(0);
               }}
             />
@@ -276,7 +365,7 @@ const TransferComponent = () => {
               src="/exchange-arrows.svg"
               className="normal-img transfer-image"
               onClick={() => {
-                "TODO:";
+                createTransferObject();
               }}
             />
           </Col>
@@ -287,14 +376,15 @@ const TransferComponent = () => {
               style={{ cursor: "pointer" }}
               readOnly={fromSui === 0}
               value={fromSui}
+              max={suiTokens}
               type="number"
               onChange={(e) => {
                 setFromSui(Number(e.currentTarget.value));
                 setFromEth(0);
               }}
               onClick={() => {
+                if (fromSui === 0) setFromSui(1);
                 setFromEth(0);
-                setFromSui(1);
               }}
             />
             <h5>{fromSui ? "From" : "To"}</h5>

@@ -38,17 +38,29 @@ router.get("/", (req, res) => {
 });
 
 router.get("/mintSui/:address", async (req, res) => {
-  const { address } = req.params;
-  res.status(200).send(await mintSui(address));
+  try {
+    const { address } = req.params;
+    res.status(200).send(await mintSui(address));
+  } catch (e) {
+    return res.status(500).send({ error: e.toString() });
+  }
 });
 
 router.get("/deployerAddress", async (req, res) => {
-  if (!SUI_DEPLOYER_PRIVATE_KEY)
-    return res
-      .status(500)
-      .send({ message: "Missing sui_deployer_privatekey from .env" });
-  const keypair = getDeployerKeypair();
-  return res.status(200).send({ deployerAddress: keypair.toSuiAddress() });
+  try {
+    if (!SUI_DEPLOYER_PRIVATE_KEY)
+      return res
+        .status(500)
+        .send({ message: "Missing sui deployer privatekey from .env" });
+    if (!SUI_CHAIN_URL)
+      return res.status(500).send({
+        message: "Missing chain url",
+      });
+    const keypair = getDeployerKeypair();
+    return res.status(200).send({ deployerAddress: keypair.toSuiAddress() });
+  } catch (e) {
+    return res.status(500).send({ error: e.toString() });
+  }
 });
 
 router.get("/deployerPublicKey", async (req, res) => {
@@ -56,71 +68,109 @@ router.get("/deployerPublicKey", async (req, res) => {
     return res
       .status(500)
       .send({ message: "Missing sui_deployer_privatekey from .env" });
-  const keypair = getDeployerKeypair();
-  res.setHeader("Content-Type", "application/octet-stream");
-  return res.status(200).send(new Buffer(keypair.getPublicKey().toRawBytes()));
+  if (!SUI_CHAIN_URL)
+    return res.status(500).send({
+      message: "Missing chain url",
+    });
+  try {
+    const keypair = getDeployerKeypair();
+    res.setHeader("Content-Type", "application/octet-stream");
+    return res
+      .status(200)
+      .send(new Buffer(keypair.getPublicKey().toRawBytes()));
+  } catch (e) {
+    return res.status(500).send({ error: e.toString() });
+  }
 });
 
 router.get("/deployerChainId", async (req, res) => {
   if (!SUI_CHAIN_URL)
     return res.status(500).send({ message: "Chain URL missing from .env" });
-  const client = new SuiClient({
-    url: SUI_CHAIN_URL,
-  });
-  return res
-    .status(200)
-    .send({ deployerChainId: await client.getChainIdentifier() });
+  try {
+    const client = new SuiClient({
+      url: SUI_CHAIN_URL,
+    });
+    return res
+      .status(200)
+      .send({ deployerChainId: await client.getChainIdentifier() });
+  } catch (e) {
+    return res.status(500).send({ error: e.toString() });
+  }
 });
 
 router.get("/deployContract", async (req, res) => {
-  const client = new SuiClient({
-    url: SUI_CHAIN_URL,
-  });
+  if (!SUI_CHAIN_URL)
+    return res.status(500).send({
+      message: "Missing chain url",
+    });
+  if (!SUI_DEPLOYER_PRIVATE_KEY)
+    return res
+      .status(500)
+      .send({ message: "Missing sui_deployer_privatekey from .env" });
+  try {
+    const client = new SuiClient({
+      url: SUI_CHAIN_URL,
+    });
 
-  const keypair = getDeployerKeypair();
+    const keypair = getDeployerKeypair();
+    mintSui(keypair.toSuiAddress());
 
-  mintSui(keypair.toSuiAddress());
+    const { modules, dependencies } = JSON.parse(
+      execSync(
+        `sui move build --dump-bytecode-as-base64 --path "${join(
+          __dirname,
+          "../../SuiToken"
+        )}" --install-dir "${join(__dirname, "../../sui_install_dir")}"`,
+        { encoding: "utf-8" }
+      )
+    );
+    const tx = new Transaction();
+    const [upgradeCap] = tx.publish({
+      modules,
+      dependencies,
+    });
 
-  const { modules, dependencies } = JSON.parse(
-    execSync(
-      `sui move build --dump-bytecode-as-base64 --path "${join(
-        __dirname,
-        "../../SuiToken"
-      )}" --install-dir "${join(__dirname, "../../sui_install_dir")}"`,
-      { encoding: "utf-8" }
-    )
-  );
-  const tx = new Transaction();
-  const [upgradeCap] = tx.publish({
-    modules,
-    dependencies,
-  });
+    tx.transferObjects([upgradeCap], keypair.toSuiAddress());
 
-  tx.transferObjects([upgradeCap], keypair.toSuiAddress());
+    const result = await client.signAndExecuteTransaction({
+      signer: keypair,
+      transaction: tx,
+      options: {
+        showEffects: true,
+      },
+    });
 
-  const result = await client.signAndExecuteTransaction({
-    signer: keypair,
-    transaction: tx,
-    options: {
-      showEffects: true,
-    },
-  });
-
-  SUI_PACKAGE_ID = result.effects.created.find((o) => o.owner === "Immutable")
-    .reference.objectId;
-  console.log(`SUI_PKG_ID: ${SUI_PACKAGE_ID}`);
-  res.status(200).send({ result });
+    SUI_PACKAGE_ID = result.effects.created.find((o) => o.owner === "Immutable")
+      .reference.objectId;
+    console.log(`SUI_PKG_ID: ${SUI_PACKAGE_ID}`);
+    res.status(200).send({ result });
+  } catch (e) {
+    return res.status(500).send({ error: e.toString() });
+  }
 });
 
 router.get("/mint/:recipientAddr/:amount", async (req, res) => {
-  let { recipientAddr, amount } = req.params;
-  if (recipientAddr.startsWith("0x"))
-    recipientAddr = recipientAddr.substring(2);
-  const keypair = getDeployerKeypair();
-  const client = new SuiClient({
-    url: SUI_CHAIN_URL,
-  });
+  if (!SUI_CHAIN_URL)
+    return res.status(500).send({
+      message: "Missing chain url",
+    });
+  if (!SUI_DEPLOYER_PRIVATE_KEY)
+    return res
+      .status(500)
+      .send({ message: "Missing sui_deployer_privatekey from .env" });
+  if (!SUI_PACKAGE_ID) {
+    return res.status(500).send({
+      message: "Missing package id, not deployed or set in .env",
+    });
+  }
   try {
+    let { recipientAddr, amount } = req.params;
+    if (recipientAddr.startsWith("0x"))
+      recipientAddr = recipientAddr.substring(2);
+    const keypair = getDeployerKeypair();
+    const client = new SuiClient({
+      url: SUI_CHAIN_URL,
+    });
     let cap = await client.getOwnedObjects({
       owner: keypair.toSuiAddress(),
       filter: {
@@ -156,15 +206,28 @@ router.get("/mint/:recipientAddr/:amount", async (req, res) => {
 });
 
 router.post("/deployerSignBurn", async (req, res) => {
-  const keypair = getDeployerKeypair();
-  const client = new SuiClient({
-    url: SUI_CHAIN_URL,
-  });
-  const userSignedTransaction = new Uint8Array(req.body);
-
-  // console.log(userSignedTransaction);
-  //TODO: check transaction is burn from user
+  if (!SUI_CHAIN_URL)
+    return res.status(500).send({
+      message: "Missing chain url",
+    });
+  if (!SUI_DEPLOYER_PRIVATE_KEY)
+    return res
+      .status(500)
+      .send({ message: "Missing sui_deployer_privatekey from .env" });
+  if (!SUI_PACKAGE_ID) {
+    return res.status(500).send({
+      message: "Missing package id, not deployed or set in .env",
+    });
+  }
   try {
+    const keypair = getDeployerKeypair();
+    const client = new SuiClient({
+      url: SUI_CHAIN_URL,
+    });
+    const userSignedTransaction = new Uint8Array(req.body);
+
+    // console.log(userSignedTransaction);
+    //TODO: check transaction is burn from user
     const tx = Transaction.from(userSignedTransaction);
     let cap = await suiClient.getOwnedObjects({
       owner: keypair.toSuiAddress(),
@@ -192,16 +255,22 @@ router.post("/deployerSignBurn", async (req, res) => {
 });
 
 router.get("/balance/:suiAddr", async (req, res) => {
-  if (SUI_PACKAGE_ID === undefined) {
-    return res.status(401).send({ error: "Contract not deployed." });
+  if (!SUI_CHAIN_URL)
+    return res.status(500).send({
+      message: "Missing chain url",
+    });
+  if (!SUI_PACKAGE_ID) {
+    return res.status(500).send({
+      message: "Missing package id, not deployed or set in .env",
+    });
   }
-  const keypair = getDeployerKeypair();
-  let { suiAddr } = req.params;
-  if (suiAddr.startsWith("0x")) suiAddr = suiAddr.substring(2);
-  const client = new SuiClient({
-    url: SUI_CHAIN_URL,
-  });
   try {
+    const keypair = getDeployerKeypair();
+    let { suiAddr } = req.params;
+    if (suiAddr.startsWith("0x")) suiAddr = suiAddr.substring(2);
+    const client = new SuiClient({
+      url: SUI_CHAIN_URL,
+    });
     const tx = new TransactionBlock();
     let coins = await client.getOwnedObjects({
       owner: suiAddr,

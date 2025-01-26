@@ -14,13 +14,22 @@ router.get("/", (req, res) => {
 });
 
 router.get('/deployerPubKey', (req,res) => {
-  if(!ETH_DEPLOYER_PRIVATE_KEY || !ETH_CHAIN_URL)
-    return res.status(500).send({message: "Chain url or deployer private key missing from .env"});
-  const web3 = new Web3(ETH_CHAIN_URL);
-  return res.status(200).send({deployerPubKey: web3.eth.accountProvider.privateKeyToAccount(ETH_DEPLOYER_PRIVATE_KEY).address})
+  try{
+    if(!ETH_DEPLOYER_PRIVATE_KEY || !ETH_CHAIN_URL)
+      return res.status(500).send({message: "Chain url or deployer private key missing from .env"});
+    const web3 = new Web3(ETH_CHAIN_URL);
+    return res.status(200).send({deployerPubKey: web3.eth.accountProvider.privateKeyToAccount(ETH_DEPLOYER_PRIVATE_KEY).address})
+  }
+  catch(e){
+    return res.status(500).send(e.toString())
+  }
 });
 
 router.get("/deployContract", async (req, res) => {
+  if(!ETH_CHAIN_URL)
+    return res.status(500).send({message: "Chain url missing from .env"});
+  if(!ETH_DEPLOYER_PRIVATE_KEY)
+    return res.status(500).send({message: "Deployer private key missing from .env"})
   try {
     const web3 = new Web3(ETH_CHAIN_URL);
     const signer = web3.eth.accounts.privateKeyToAccount(
@@ -41,11 +50,17 @@ router.get("/deployContract", async (req, res) => {
     res.status(200).send({ETH_CONTRACT_ADDRESS});
   } catch (e) {
     console.error(e);
-    res.status(500).send({ error: e });
+    res.status(500).send({ error: e.toString() });
   }
 });
 
 router.get('/mint/:pubKey/:amount', async (req,res) => {
+  if(!ETH_CHAIN_URL)
+    return res.status(500).send({message: "Chain url missing from .env"});
+  if(!ETH_CONTRACT_ADDRESS)
+    return res.status(500).send({message: "Contract not deployed"})
+  if(!ETH_DEPLOYER_PRIVATE_KEY)
+    return res.status(500).send({message: "Deployer private key missing from .env"})
   let {pubKey, amount} = req.params;
   if (!ETH_CONTRACT_ADDRESS) {
     return res.status(401).send({ error: "Contract not deployed." });
@@ -62,7 +77,7 @@ router.get('/mint/:pubKey/:amount', async (req,res) => {
   }
   catch(e){
     console.error(e);
-    return res.status(500).send({error: e})
+    return res.status(500).send({error: e.toString()})
   }
 });
 
@@ -80,10 +95,15 @@ router.get('/contractAddress', (req,res) => {
 })
 
 router.get('/burn/:pubKey/:amount', async (req,res) => {
+  if(!ETH_CHAIN_URL)
+    return res.status(500).send({message: "Chain url missing from .env"});
+  if(!ETH_CONTRACT_ADDRESS)
+    return res.status(500).send({message: "Contract not deployed"})
+  if(!ETH_DEPLOYER_PRIVATE_KEY)
+    return res.status(500).send({message: "Deployer private key missing from .env"})
+
   let {pubKey, amount} = req.params;
-  if (!ETH_CONTRACT_ADDRESS) {
-    return res.status(401).send({ error: "Contract not deployed." });
-  }
+
   try{
     const web3 = new Web3(ETH_CHAIN_URL);
     const contract = new web3.eth.Contract(IBTToken.abi, ETH_CONTRACT_ADDRESS);
@@ -96,15 +116,20 @@ router.get('/burn/:pubKey/:amount', async (req,res) => {
   }
   catch(e){
     console.error(e);
-    return res.status(500).send({error: e})
+    return res.status(500).send({error: e.toString()})
   }
 });
 
 router.get("/balanceOf/:pubKey", async (req, res) => {
+  if(!ETH_CHAIN_URL)
+    return res.status(500).send({message: "Chain url missing from .env"});
+  if(!ETH_CONTRACT_ADDRESS)
+    return res.status(500).send({message: "Contract not deployed"})
+  if(!ETH_DEPLOYER_PRIVATE_KEY)
+    return res.status(500).send({message: "Deployer private key missing from .env"})
+
   let { pubKey } = req.params;
-  if (!ETH_CONTRACT_ADDRESS) {
-    return res.status(401).send({ error: "Contract not deployed." });
-  }
+  
   try {
     const web3 = new Web3(ETH_CHAIN_URL);
     const contract = new web3.eth.Contract(IBTToken.abi, ETH_CONTRACT_ADDRESS);
@@ -119,7 +144,7 @@ router.get("/balanceOf/:pubKey", async (req, res) => {
     return res.status(200).send({ balance });
   } catch (e) {
     console.error(e);
-    return res.status(500).send({ error: e });
+    return res.status(500).send({ error: e.toString() });
   }
 });
 

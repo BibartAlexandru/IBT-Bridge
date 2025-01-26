@@ -116,7 +116,7 @@ const EthereumPage = () => {
 
   useEffect(() => {
     if (account) refreshTokens();
-  }, [account, refreshTokens]);
+  }, [account]);
 
   useEffect(() => {
     fetchAndSetContractAddress();
@@ -127,7 +127,12 @@ const EthereumPage = () => {
     } else {
       connect();
     }
-  }, [connect, mode]);
+  }, [mode]);
+
+  useEffect(() => {
+    refreshTokens();
+    connect();
+  }, [connect]);
 
   async function deployEthTokenContract() {
     const res = await fetch(`${backend_url}/eth/deployContract`, {
