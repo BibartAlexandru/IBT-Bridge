@@ -174,10 +174,13 @@ router.get("/processTransfers", async (req, res) => {
           ? await fetchEthTokens(ts.toAcc)
           : await fetchSuiTokens(ts.toAcc);
       if (!currFromBalance || !currToBalance) continue;
+      const intendedFromBalance = ts.initialFromAmount - ts.amount;
+      const intendedToBalance = ts.initialToAmount + ts.amount;
       // db.run("BEGIN TRANSACTION");
       try {
         //WE HAVE TO BURN + MINT
         if (ts.initialFromAmount === currFromBalance) {
+          console.log("we are here!");
           //BURN + MINT (ETH -> SUI)
           if (ts.fromChain === "eth") {
             let ok = await ethBurn(ts.amount, ts.fromAcc);
@@ -200,8 +203,11 @@ router.get("/processTransfers", async (req, res) => {
             //   const ok = await suiBurn();
           }
         }
-        //TRANSACTION FAILED AFTER SUCCESFULLY BURNING => ONLY NEED TO DO MINT
-        else if (ts.initialFromAmount === currFromBalance) {
+        //Transfer FAILED AFTER SUCCESFULLY BURNING => ONLY NEED TO DO MINT
+        else if (
+          ts.initialFromAmount === intendedFromBalance &&
+          ts.initialToAmount === currToBalance
+        ) {
           // MINT only (ETH -> SUI)
           if (ts.fromChain === "eth") {
             const ok = await suiMint(ts.amount, ts.toAcc);
@@ -213,15 +219,20 @@ router.get("/processTransfers", async (req, res) => {
             st.finalize((err) => {
               if (err) console.error(err);
               else {
-                // db.run("COMMIT");
                 db.run(`DELETE FROM transfers WHERE id = ${ts.id}`);
               }
             });
-            db.run("COMMIT");
+            // db.run("COMMIT");
           } //MINT only (SUI -> ETH)
           else {
             //TODO:
           }
+        } else if (
+          // DON'T HAVE TO DO ANYTHING, transfer is done
+          ts.intendedFromBalance === currFromBalance &&
+          ts.intendedToBalance === currToBalance
+        ) {
+          db.run(`DELETE FROM transfers WHERE id = ${ts.id}`);
         } else {
           db.run(`DELETE FROM transfers WHERE id = ${ts.id}`);
           throw Error(

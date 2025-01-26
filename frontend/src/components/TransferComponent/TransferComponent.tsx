@@ -12,7 +12,6 @@ import {
   ConnectButton,
   useCurrentAccount,
   useConnectWallet,
-  useCurrentWallet,
   useWallets,
   // useSignTransaction,
   // useSignPersonalMessage,
@@ -22,6 +21,7 @@ import {
 import { backend_url } from "../../App";
 import { Transaction } from "@mysten/sui/transactions";
 import { SuiClient } from "@mysten/sui/client";
+import clsx from "clsx";
 // import { MultiSigPublicKey } from "@mysten/sui/multisig";
 // import { Ed25519PublicKey } from "@mysten/sui/keypairs/ed25519";
 // import { fromB64, fromBase64 } from "@mysten/sui/utils";
@@ -48,6 +48,10 @@ const TransferComponent = () => {
   // const [suiDeployerAddress, setSuiDeployerAddress] = useState("");
   const [isEthContract, setIsEthContract] = useState(false);
   const [suiPackageId, setSuiPackageId] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [transferImgSpin, setTransferImgSpin] = useState(false);
+  const [flashEth, setFlashEth] = useState(false); // change color
+  const [flashSui, setFlashSui] = useState(false); //
   // const [userSignedBurnTransaction, setUserSignedBurnTransaction] =
   // useState(undefined);
   const pollingTransfersFn = useRef(null);
@@ -148,7 +152,8 @@ const TransferComponent = () => {
   //   console.log(resp);
   // }
 
-  const fetchSuiTokens = useCallback(async (): Promise<number | undefined> => {
+  const fetchSuiTokens = async (): Promise<number | undefined> => {
+    // console.log("fetching SUI T");
     const resp = await fetch(
       `${backend_url}/sui/balance/${suiAccount?.address}`,
       {
@@ -160,9 +165,10 @@ const TransferComponent = () => {
       return Number(balance);
     }
     return undefined;
-  }, [suiAccount]);
+  };
 
-  const fetchEthTokens = useCallback(async (): Promise<number | undefined> => {
+  const fetchEthTokens = async (): Promise<number | undefined> => {
+    // console.log("fetching ETH T");
     const res = await fetch(`${backend_url}/eth/balanceOf/${ethAccount}`, {
       method: "GET",
     });
@@ -171,33 +177,39 @@ const TransferComponent = () => {
       return Number(balance);
     }
     return undefined;
-  }, [ethAccount]);
+  };
 
-  const fetchAndSetTokens = useCallback(async () => {
+  const fetchAndSetTokens = async () => {
     if (ethAccount) {
+      const prevEth = ethTokens;
       const res = await fetchEthTokens();
-      console.log("GOT:" + res);
-      if (res) setEthTokens(res);
+      if (res) {
+        setEthTokens((prev) => {
+          if (res !== prev) toggleEthFlash();
+          return res;
+        });
+      }
     }
     if (suiAccount) {
       const res = await fetchSuiTokens();
-      console.log("GOT:" + res);
-      if (res) setSuiTokens(res);
+      const prevSui = suiTokens;
+      if (res && res !== prevSui) {
+        setSuiTokens((prev) => {
+          if (prev !== res) toggleSuiFlash();
+          return res;
+        });
+      }
     }
-  }, [ethAccount, suiAccount, fetchEthTokens, fetchSuiTokens]);
+  };
 
-  async function fetchAndSetIsContracts() {
-    let resp = await fetch(`${backend_url}/eth/contractAddress`, {
+  async function fetchAndSetIsEthContract() {
+    const resp = await fetch(`${backend_url}/eth/contractAddress`, {
       method: "GET",
     });
     if (resp.status === 200) setIsEthContract(true);
-    // resp = await fetch(`${backend_url}/sui/packageId`, {
-    //   method: "GET",
-    // });
-    // if (resp.status === 200) setIsSuiPackage(true);
   }
 
-  const fetchAndSetSuiPackageId = useCallback(async () => {
+  const fetchAndSetSuiPackageId = async () => {
     if (!suiAccount) return;
     const resp = await fetch(`${backend_url}/sui/packageId`, {
       method: "GET",
@@ -205,7 +217,7 @@ const TransferComponent = () => {
     if (resp.status !== 200) return;
     const { packageId } = await resp.json();
     setSuiPackageId(packageId);
-  }, [suiAccount]);
+  };
 
   // async function fetchAndSetSuiDeployerAddress() {
   //   const resp = await fetch(`${backend_url}/sui/deployerAddress`, {
@@ -218,31 +230,27 @@ const TransferComponent = () => {
 
   useEffect(() => {
     if (ethAccount && ethAccount.length !== 0) {
-      fetchAndSetIsContracts();
+      fetchAndSetIsEthContract();
       fetchAndSetTokens();
     }
-  }, [ethAccount, fetchAndSetTokens]);
+  }, [ethAccount]);
 
   useEffect(() => {
     if (suiAccount) {
-      fetchAndSetIsContracts();
       fetchAndSetTokens();
-      if (suiAccount) fetchAndSetSuiPackageId();
+      fetchAndSetSuiPackageId();
     }
-  }, [suiAccount, fetchAndSetTokens, fetchAndSetSuiPackageId]);
+  }, [suiAccount]);
 
   useEffect(() => {
     if (!ethAccount) connect();
 
     if (!suiAccount)
-      suiConnect(
-        {
-          wallet: suiWallets[0],
-        },
-        {}
-      );
+      suiConnect({
+        wallet: suiWallets[0],
+      });
     // fetchAndSetSuiDeployerAddress();
-  }, [connect, suiAccount, ethAccount, suiConnect, suiWallets]);
+  }, [connect, suiConnect, suiWallets]);
 
   function dateToSQL(date: Date): string {
     const pad = (num: number) => String(num).padStart(2, "0");
@@ -253,32 +261,35 @@ const TransferComponent = () => {
     )}`;
   }
 
-  const startPollingTransferOperations = useCallback(async () => {
+  const startPollingTransferOperations = () => {
     const pollAndProcessTransfers = async () => {
       const resp = await fetch(`${backend_url}/db/processTransfers`, {
         method: "GET",
       });
       if (resp.status === 200) {
         fetchAndSetTokens();
-        console.log(resp);
       }
-      setTimeout(pollAndProcessTransfers, 10000);
     };
-    if (!pollingTransfersFn.current) {
-      pollingTransfersFn.current = setTimeout(pollAndProcessTransfers, 0);
-    }
-  }, [fetchAndSetTokens]);
+    pollingTransfersFn.current = setInterval(() => {
+      pollAndProcessTransfers();
+      console.log("POLLING");
+    }, 10000);
+  };
 
   useEffect(() => {
-    startPollingTransferOperations();
-  }, [startPollingTransferOperations]);
+    if (suiAccount && ethAccount && pollingTransfersFn.current === null)
+      startPollingTransferOperations();
+    return () => {
+      pollingTransfersFn.current = null;
+    };
+  }, [suiAccount, ethAccount]);
 
   useEffect(() => {
     connect();
   }, [connect]);
 
   async function createTransferObject() {
-    if (!suiAccount) {
+    if (!suiAccount || !suiAccount.address) {
       console.error("sui account not connected");
       return;
     }
@@ -302,7 +313,35 @@ const TransferComponent = () => {
       },
       body: JSON.stringify({ transfer: ts }),
     });
-    console.log(resp);
+    if (resp.status === 200) toggleSuccessModal();
+  }
+
+  async function toggleSuccessModal() {
+    await setModalVisible(true);
+    setTimeout(() => {
+      setModalVisible(false);
+    }, 2000);
+  }
+
+  async function toggleTransferImgSpin() {
+    await setTransferImgSpin(true);
+    setTimeout(() => {
+      setTransferImgSpin(false);
+    }, 14000);
+  }
+
+  async function toggleEthFlash() {
+    await setFlashEth(true);
+    setTimeout(() => {
+      setFlashEth(false);
+    }, 300);
+  }
+
+  async function toggleSuiFlash() {
+    await setFlashSui(true);
+    setTimeout(() => {
+      setFlashSui(false);
+    }, 300);
   }
 
   return (
@@ -328,12 +367,16 @@ const TransferComponent = () => {
           <Col xs="2"></Col>
 
           <Col>
-            <h3>{ethTokens}</h3>
+            <h3 className={flashEth ? "flash-token" : "normal-token"}>
+              {ethTokens}
+            </h3>
           </Col>
           <Col xs="2"></Col>
 
           <Col>
-            <h3>{suiTokens}</h3>
+            <h3 className={flashSui ? "flash-token" : "normal-token"}>
+              {suiTokens}
+            </h3>
           </Col>
           <Col xs="2"></Col>
         </Row>
@@ -363,9 +406,13 @@ const TransferComponent = () => {
           <Col>
             <img
               src="/exchange-arrows.svg"
-              className="normal-img transfer-image"
+              className={
+                "normal-img transfer-image" +
+                (transferImgSpin ? " spinning-img" : "")
+              }
               onClick={() => {
                 createTransferObject();
+                toggleTransferImgSpin();
               }}
             />
           </Col>
@@ -434,9 +481,14 @@ const TransferComponent = () => {
           </Row>
         )}
       </Col>
-      <Col>
+      <Col
+        className="mt-3"
+        xs="10"
+        style={{ display: "flex", justifyContent: "right" }}
+      >
         <Button
           className="btn btn-danger"
+          style={{ opacity: ".5" }}
           onClick={(e) => {
             e.preventDefault();
             burnSuiFromUser(fromSui);
@@ -444,6 +496,19 @@ const TransferComponent = () => {
         >
           Test Sui Burn
         </Button>
+      </Col>
+      <Col
+        xs="12"
+        className={clsx({
+          "mt-3 p-3 success-modal": true,
+          "success-modal-visible": modalVisible,
+          "success-modal-hidden": !modalVisible,
+        })}
+      >
+        <h4>
+          <span className="success-text">Successfully</span> created a transfer!
+          It might take some time to process...
+        </h4>
       </Col>
     </Container>
   );

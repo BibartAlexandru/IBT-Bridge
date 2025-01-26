@@ -27,3 +27,57 @@
   transition-property: transform;
   transition-duration: 100ms;
 }
+
+.success-modal {
+  background-color: var(--bs-navbar-color);
+  border-radius: var(--bs-border-radius);
+}
+
+.success-text {
+  color: rgb(87, 225, 87);
+}
+
+.success-modal-visible {
+  opacity: 1;
+  height: fit-content;
+  transform: translateY(0);
+  transition-property: transform;
+  transition-duration: 300ms;
+}
+
+.success-modal-hidden {
+  opacity: 0;
+  height: 0;
+  transform: translateY(3rem);
+  transition-property: transform opacity;
+  transition-duration: 500ms;
+}
+
+.spinning-img {
+  animation-name: spin;
+  animation-iteration-count: infinite;
+  animation-duration: 800ms;
+  animation-direction: normal;
+  animation-fill-mode: backwards;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.flash-token {
+  color: rgb(79, 212, 230);
+  transition-property: color;
+  transition-duration: 100ms;
+}
+
+.normal-token {
+  color: white;
+  transition-property: color;
+  transition-duration: 300ms;
+}
