@@ -1,6 +1,6 @@
 ## IBT Bridge 🌉.
 
-Centralized token bridge from Ethereum to Sui.
+Centralized token bridge from Ethereum ↔️ Sui.
 
 ### How to use
 
